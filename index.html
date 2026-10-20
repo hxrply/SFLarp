@@ -3,13 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#1f2430">
 <title>Chess Companion</title>
+<meta name="claude:viewport-fit-sides" content="cover">
 <style>
-:root{--bg:#1f2430;--card:#2a3040;--ink:#e8ebf2;--mute:#9aa3b5;--light:#e9d9b8;--dark:#a67d52;--sel:#f6e05e;
+:root{color-scheme:dark;--bg:#1f2430;--card:#2a3040;--ink:#e8ebf2;--mute:#9aa3b5;--light:#e9d9b8;--dark:#a67d52;--sel:#f6e05e;
 --capture:#e5645c;--check:#f0a23b;--threat:#d98cf0;--fork:#ff7ab6;--discover:#b79cff;--defend:#5ac98f;--develop:#5aa9e6;--center:#8fd0d0;--castle:#9bb0ff;--promo:#ffd166;--mate:#ff4d4d;--warn:#ff8a80}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 system-ui,sans-serif;padding:12px max(12px,env(safe-area-inset-left))}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 system-ui,sans-serif;padding-block:12px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+:focus-visible{outline:2px solid var(--sel);outline-offset:2px}
+#mvin{flex:1;min-width:0}
+#msg{min-height:1.2em;font-size:13px;color:var(--warn);margin-top:4px}
 main{max-width:980px;margin:0 auto;display:grid;gap:12px;grid-template-columns:minmax(0,1fr)}
 @media(min-width:820px){main{grid-template-columns:minmax(0,460px) minmax(0,1fr);align-items:start}}
 h1{font-size:18px;margin:0 0 4px}h2{font-size:14px;margin:0 0 6px;color:var(--mute);text-transform:uppercase;letter-spacing:.05em}
@@ -46,6 +49,8 @@ details summary{cursor:pointer;color:var(--mute)}
    <div class="mute" style="font-size:13px;margin-bottom:8px">Shows what's possible &mdash; never what's best. Play both sides' moves on the board to track your game.</div>
    <div id="board"></div>
    <div id="status" style="margin-top:8px"></div>
+   <form class="row" id="moveform" autocomplete="off"><input id="mvin" placeholder="Type a move: e4, Nf3, exd5, O-O" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go"><button type="submit">Play</button></form>
+   <div id="msg" role="status"></div>
    <div class="row">
     <button id="undo">↶ Undo</button><button id="flip">⇅ Flip</button><button id="new">New game</button>
    </div>
@@ -2375,12 +2380,20 @@ function renderMoves() {
   });
 }
 
-$('undo').onclick = () => { chess.undo(); selected = highlight = null; refresh(); };
+$('undo').onclick = () => { chess.undo(); say(''); selected = highlight = null; refresh(); };
 $('flip').onclick = () => { flipped = !flipped; render(); };
 $('new').onclick = () => { chess = new Chess(); selected = highlight = filter = null; refresh(); };
+const say = (t) => { $('msg').textContent = t; };
 $('loadfen').onclick = () => {
-  try { chess = new Chess($('fen').value.trim()); selected = highlight = null; refresh(); }
-  catch { alert('That FEN is not valid.'); }
+  try { chess = new Chess($('fen').value.trim()); selected = highlight = null; say(''); refresh(); }
+  catch { say('That FEN is not valid.'); }
+};
+$('moveform').onsubmit = (e) => {
+  e.preventDefault();
+  const txt = $('mvin').value.trim();
+  if (!txt) return;
+  try { chess.move(txt); } catch { say(`"${txt}" is not a legal move here.`); return; }
+  $('mvin').value = ''; say(''); selected = highlight = null; refresh();
 };
 $('level').value = settings.level; $('warn').checked = settings.warn;
 $('level').onchange = (e) => { settings.level = e.target.value; save(); renderMoves(); };

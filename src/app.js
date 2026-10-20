@@ -127,12 +127,20 @@ function renderMoves() {
   });
 }
 
-$('undo').onclick = () => { chess.undo(); selected = highlight = null; refresh(); };
+$('undo').onclick = () => { chess.undo(); say(''); selected = highlight = null; refresh(); };
 $('flip').onclick = () => { flipped = !flipped; render(); };
 $('new').onclick = () => { chess = new Chess(); selected = highlight = filter = null; refresh(); };
+const say = (t) => { $('msg').textContent = t; };
 $('loadfen').onclick = () => {
-  try { chess = new Chess($('fen').value.trim()); selected = highlight = null; refresh(); }
-  catch { alert('That FEN is not valid.'); }
+  try { chess = new Chess($('fen').value.trim()); selected = highlight = null; say(''); refresh(); }
+  catch { say('That FEN is not valid.'); }
+};
+$('moveform').onsubmit = (e) => {
+  e.preventDefault();
+  const txt = $('mvin').value.trim();
+  if (!txt) return;
+  try { chess.move(txt); } catch { say(`"${txt}" is not a legal move here.`); return; }
+  $('mvin').value = ''; say(''); selected = highlight = null; refresh();
 };
 $('level').value = settings.level; $('warn').checked = settings.warn;
 $('level').onchange = (e) => { settings.level = e.target.value; save(); renderMoves(); };
