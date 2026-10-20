@@ -1,11 +1,11 @@
-// Bundles src/ + vendor/ into one self-contained page.
-//   index.html    standalone (works offline, from file://)
-//   artifact.html fragment for the Artifact publisher (it adds the document skeleton itself)
+// Bundles src/ + vendor/chess.js into one index.html. The engine files in vendor/stockfish/ stay separate
+// (a Web Worker has to load them by URL), so serve the folder over http(s), e.g. GitHub Pages.
 import { readFileSync, writeFileSync } from 'node:fs';
 const strip = (code) => code
   .replace(/^import .*$/gm, '')
   .replace(/^export (const|function|class) /gm, '$1 ');
-const js = ['vendor/chess.js', 'src/awareness.js', 'src/app.js'].map((f) => strip(readFileSync(f, 'utf8'))).join('\n');
+const files = ['vendor/chess.js', 'src/awareness.js', 'src/engine.js', 'src/editor.js', 'src/app.js'];
+const js = files.map((f) => strip(readFileSync(f, 'utf8'))).join('\n');
 const fragment = readFileSync('src/template.html', 'utf8')
   .replace('/*SCRIPT*/', () => `(() => {\n${js.replace(/<\/script/gi, '<\\/script')}\n})();`);
 const [headPart, ...rest] = fragment.split('</style>\n');
@@ -21,5 +21,4 @@ ${rest.join('</style>\n')}</body>
 </html>
 `;
 writeFileSync('index.html', page);
-writeFileSync('artifact.html', fragment);
-console.log(`index.html ${(page.length / 1024).toFixed(0)} KB, artifact.html ${(fragment.length / 1024).toFixed(0)} KB`);
+console.log(`index.html ${(page.length / 1024).toFixed(0)} KB`);
