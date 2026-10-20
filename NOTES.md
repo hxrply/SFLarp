@@ -31,3 +31,6 @@ Its whole job is to rank moves and name one best. That's the opposite of buildin
 
 ## Known limits
 No x-ray attackers, no deep tactics (combinations beyond 1-2 plies), no positional/pawn-structure evaluation. Auto-queens on promotion.
+
+## Update: engine mode
+The app now bundles Stockfish.js 19 (lite NNUE net, single-threaded WASM, ~1.9 MB) and talks to it over UCI (`uci`, `setoption MultiPV`, `position fen`, `go depth N`, `stop`). Scores are converted to White's point of view; a search being replaced is `stop`ped and its late `bestmove` is used to start the queued one, so output from an old position is never shown for a new one. The awareness layer is unchanged and still never ranks moves; the engine's picks are shown separately (star chips, arrows, engine card).
