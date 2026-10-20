@@ -1,19 +1,19 @@
 import { Chess } from '../vendor/chess.js';
 import { analyze, sqName } from './awareness.js';
 import { Engine, ENGINE_URL, fmtScore, scoreValue, pvToSan } from './engine.js';
-import { loadFromEditor } from './editor.js';
+import { loadFromEditor, loadPosition, gridOf } from './editor.js';
 
 const $ = (id) => document.getElementById(id);
 const GLYPH = { wk: '♔', wq: '♕', wr: '♖', wb: '♗', wn: '♘', wp: '♙', bk: '♚', bq: '♛', br: '♜', bb: '♝', bn: '♞', bp: '♟' };
 const PIECE_NAME = { k: 'King', q: 'Queen', r: 'Rooks', b: 'Bishops', n: 'Knights', p: 'Pawns' };
-const THEMES = [['check', 'Checks'], ['capture', 'Captures'], ['threat', 'Threats'], ['fork', 'Forks'], ['discover', 'Discoveries'], ['defend', 'Defensive'], ['develop', 'Development'], ['castle', 'Castling'], ['promo', 'Promotions']];
+const THEMES = [['mate', 'Checkmate'], ['check', 'Checks'], ['capture', 'Captures'], ['threat', 'Threats'], ['fork', 'Forks'], ['discover', 'Discoveries'], ['defend', 'Defensive'], ['develop', 'Development'], ['castle', 'Castling'], ['promo', 'Promotions']];
 const PRIORITY = ['mate', 'check', 'fork', 'capture', 'threat', 'discover', 'defend', 'promo', 'castle', 'develop', 'center'];
 const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
 let chess = new Chess();
 let flipped = false, selected = null, highlight = null, info = null, filter = null;
 // editor
-let editing = false, editBoard = null, editTool = 'hand', handFrom = null;
+let editing = false, editBoard = null, editTool = 'hand', handFrom = null, editBase = null, editStart = null;
 // engine
 let engine = null, engineToken = 0, engineTimer = 0;
 let eng = { status: 'idle', lines: [], depth: 0, fen: '', turn: 'w', msg: '' };
@@ -30,7 +30,7 @@ const say = (t) => { $('msg').textContent = t; };
 const engineMove = (line) => ({ from: line.pv[0].slice(0, 2), to: line.pv[0].slice(2, 4) });
 function enginePick(m) {
   if (!settings.engine) return -1;
-  return eng.lines.findIndex((l) => l && l.pv[0].slice(0, 2) === m.from && l.pv[0].slice(2, 4) === m.to);
+  return eng.lines.findIndex((l) => l && l.pv[0].slice(0, 2) === m.from && l.pv[0].slice(2, 4) === m.to && (l.pv[0][4] || '') === (m.promotion || ''));
 }
 
 function runEngine() {
@@ -53,7 +53,7 @@ function runEngine() {
       engine = null;
       eng = { ...eng, status: 'error', msg: location.protocol === 'file:'
         ? 'The engine cannot start from a local file. Open the hosted page (GitHub Pages) instead.'
-        : 'The engine could not be loaded.' };
+        : `${e.message || 'The engine could not be loaded.'} Turn "Engine suggestions" off and on to try again.` };
       renderEngine();
       return;
     }
@@ -72,7 +72,12 @@ function runEngine() {
         const key = eng.lines.map((l) => l && l.pv[0]).join(',');
         if (key !== topKey) { topKey = key; drawArrows(); renderMoves(); }
       },
-      onDone() { if (token === engineToken) { eng.status = 'done'; renderEngine(); } },
+      onDone({ rejected }) {
+        if (token !== engineToken) return;
+        eng.status = 'done';
+        if (rejected) eng.lines = [];
+        renderEngine(); drawArrows(); renderMoves();
+      },
     });
   }, 150);
 }
@@ -92,7 +97,8 @@ function renderEngine() {
     const v = scoreValue(l.score, eng.turn);
     return `<div class="eline" data-r="${r}"><span class="rank">${r + 1}</span><span class="ev ${v > 30 ? 'pos' : v < -30 ? 'neg' : ''}">${fmtScore(l.score, eng.turn)}</span><span class="pv"><b>${esc(san[0])}</b> ${esc(san.slice(1).join(' '))}</span></div>`;
   }).join('');
-  el.innerHTML = `<h2>Stockfish 19 &middot; <span class="mute" style="text-transform:none;letter-spacing:0">${state}</span></h2>${rows || '<div class="mute">Working out the best moves…</div>'}
+  const empty = eng.status === 'done' ? '<div class="bad">Stockfish could not analyse this position.</div>' : '<div class="mute">Working out the best moves…</div>';
+  el.innerHTML = `<h2>Stockfish 19 &middot; <span class="mute" style="text-transform:none;letter-spacing:0">${state}</span></h2>${rows || empty}
    <div class="mute" style="font-size:12px;margin-top:6px">Scores are from White's side (+ is better for White, #3 is mate in 3). Tap a line to see its first move.</div>`;
   el.querySelectorAll('.eline').forEach((row) => {
     row.onclick = () => { const m = engineMove(eng.lines[row.dataset.r]); selected = m.from; highlight = [m.from, m.to]; renderBoard(); };
@@ -199,7 +205,7 @@ function renderAware() {
     if (p.opening.undeveloped.length) open.push(`Still at home: ${p.opening.undeveloped.join(', ')}`);
     open.push(p.opening.castlingRights ? 'You can still castle.' : 'Castling rights are gone.');
   }
-  const themes = [['Checks', c.checks], ['Captures', c.captures], ['Threats', c.threats], ['Forks', c.forks], ['Promotions', c.promotions], ['Castling', c.castles]];
+  const themes = [['Checkmate', c.mates], ['Checks', c.checks], ['Captures', c.captures], ['Threats', c.threats], ['Discoveries', c.discoveries], ['Forks', c.forks], ['Promotions', c.promotions], ['Castling', c.castles]];
   el.innerHTML = `<h2>Look around &mdash; ${you}</h2>
    <div>Material: ${p.material.you} vs ${p.material.them} (<b class="${p.material.diff < 0 ? 'bad' : p.material.diff > 0 ? 'good' : ''}">${sign}</b>) &middot; ${c.total} legal moves${p.theirChecks ? ` &middot; they have ${p.theirChecks} check${p.theirChecks > 1 ? 's' : ''} available` : ''}</div>
    ${danger.length ? `<h2 style="margin-top:10px">Watch out</h2>${list(danger, 'bad')}` : ''}
@@ -248,7 +254,6 @@ function renderMoves() {
 }
 
 /* ---------- position editor ---------- */
-const gridOf = (c) => c.board().flat().map((x) => (x ? { t: x.type, c: x.color } : null));
 const START_GRID = gridOf(new Chess(START_FEN));
 
 function buildPalette() {
@@ -260,6 +265,7 @@ function buildPalette() {
 function startEditing() {
   editing = true; selected = highlight = handFrom = null;
   editBoard = gridOf(chess); editTool = 'hand';
+  editBase = chess.fen(); editStart = JSON.stringify(editBoard);
   $('editturn').value = chess.turn();
   $('editor').hidden = false; $('moveform').hidden = true; $('edit').classList.add('on');
   say(''); buildPalette(); runEngine(); render();
@@ -283,24 +289,45 @@ $('undo').onclick = () => { if (editing) return; chess.undo(); selected = highli
 $('flip').onclick = () => { flipped = !flipped; render(); };
 $('edit').onclick = () => (editing ? ($('ecancel').onclick()) : startEditing());
 $('new').onclick = () => { stopEditing(); chess = new Chess(); selected = highlight = filter = null; say(''); refresh(); };
-$('eclear').onclick = () => { editBoard = Array(64).fill(null); handFrom = null; say(''); renderBoard(); };
-$('estart').onclick = () => { editBoard = START_GRID.map((p) => p && { ...p }); $('editturn').value = 'w'; handFrom = null; say(''); renderBoard(); };
-$('ereset').onclick = () => { editBoard = gridOf(chess); $('editturn').value = chess.turn(); handFrom = null; say(''); renderBoard(); };
+// a cleared board is a fresh setup (castling allowed wherever king and rook stand at home)
+$('eclear').onclick = () => { editBoard = Array(64).fill(null); editBase = null; handFrom = null; say(''); renderBoard(); };
+$('estart').onclick = () => { editBoard = START_GRID.map((p) => p && { ...p }); editBase = START_FEN; $('editturn').value = 'w'; handFrom = null; say(''); renderBoard(); };
+$('ereset').onclick = () => { editBoard = gridOf(chess); editBase = chess.fen(); $('editturn').value = chess.turn(); handFrom = null; say(''); renderBoard(); };
 $('ecancel').onclick = () => { stopEditing(); say(''); refresh(); };
 $('edone').onclick = () => {
-  const r = loadFromEditor(editBoard, $('editturn').value);
+  const turn = $('editturn').value;
+  if (editBase === chess.fen() && JSON.stringify(editBoard) === editStart && turn === chess.turn()) {
+    stopEditing(); say(''); refresh(); return; // nothing changed: keep the game, its history and its rights
+  }
+  const r = loadFromEditor(editBoard, turn, editBase);
   if (r.error) { say(r.error); return; }
   stopEditing(); chess = r.chess; selected = highlight = filter = null; say(''); refresh();
 };
 $('loadfen').onclick = () => {
-  try { const c = new Chess($('fen').value.trim()); stopEditing(); chess = c; selected = highlight = null; say(''); refresh(); }
-  catch { say('That FEN is not valid.'); }
+  const r = loadPosition($('fen').value);
+  if (r.error) { say(r.error); return; }
+  stopEditing(); chess = r.chess; selected = highlight = filter = null; say(''); refresh();
 };
+/** Typed move -> played move, accepting nc3 / 0-0 / oo / e2e4 as well as proper SAN. */
+function playTyped(txt) {
+  const tries = [txt];
+  const castle = txt.replace(/[-\s]/g, '').toUpperCase().replace(/0/g, 'O');
+  if (castle === 'OO') tries.push('O-O');
+  if (castle === 'OOO') tries.push('O-O-O');
+  if (/^[nbrqk]/.test(txt)) tries.push(txt[0].toUpperCase() + txt.slice(1)); // "bxc3" is tried as a pawn move first
+  for (const t of tries) { try { return chess.move(t); } catch { /* try the next spelling */ } }
+  const coord = txt.toLowerCase().match(/^([a-h][1-8])-?([a-h][1-8])=?([qrbn])?$/);
+  if (coord) { try { return chess.move({ from: coord[1], to: coord[2], promotion: coord[3] || 'q' }); } catch { /* not legal */ } }
+  return null;
+}
 $('moveform').onsubmit = (e) => {
   e.preventDefault();
   const txt = $('mvin').value.trim();
   if (!txt) return;
-  try { chess.move(txt); } catch { say(`"${txt}" is not a legal move here.`); return; }
+  if (!playTyped(txt)) {
+    say(chess.isGameOver() ? 'The game is over.' : `"${txt}" is not a legal move here. Try e4, Nf3, exd5, O-O or e2e4.`);
+    return;
+  }
   $('mvin').value = ''; say(''); selected = highlight = null; refresh();
 };
 $('level').value = settings.level; $('warn').checked = settings.warn;

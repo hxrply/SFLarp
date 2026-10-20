@@ -170,7 +170,7 @@ function describePosition(chess, b) {
   };
 }
 
-/** Per-move tags. Kinds: capture check mate threat fork discover develop castle center promo | warn */
+/** Per-move tags. Kinds: capture check mate threat fork discover defend develop castle center promo | warn */
 function describeMove(chess, m, b0, ctx) {
   const me = m.color, opp = other(me);
   const from = sqIdx(m.from), to = sqIdx(m.to);
@@ -187,6 +187,11 @@ function describeMove(chess, m, b0, ctx) {
   const hang1 = hanging(b1, me);
   const tgt1 = hanging(b1, opp);
   const oppKing = b1.findIndex((p) => p && p.c === opp && p.t === 'k');
+  // squares the moving side's pieces landed on (castling also moves a rook)
+  const castle = m.flags.includes('k') ? 'k' : m.flags.includes('q') ? 'q' : null;
+  const movers = [to];
+  if (castle) movers.push(sqIdx(`${castle === 'k' ? 'f' : 'd'}${m.to[1]}`));
+  const byMover = (i) => attackersOf(b1, i, me).some((a) => movers.includes(a.i));
 
   // --- facts ---
   let net = null;
@@ -197,36 +202,43 @@ function describeMove(chess, m, b0, ctx) {
     ctx.counts.captures++;
   }
   if (m.promotion) { add('promo', `Promotes to ${NAME[m.promotion]}`); ctx.counts.promotions++; }
-  if (m.flags.includes('k') || m.flags.includes('q')) { add('castle', m.flags.includes('k') ? 'Castles kingside' : 'Castles queenside'); ctx.counts.castles++; }
-  if (mate) add('mate', 'Checkmate');
+  if (castle) { add('castle', castle === 'k' ? 'Castles kingside' : 'Castles queenside'); ctx.counts.castles++; }
+  if (mate) { add('mate', 'Checkmate'); ctx.counts.mates++; }
   else if (check) {
-    const direct = attackersOf(b1, oppKing, me).some((a) => a.i === to);
-    add('check', direct ? 'Gives check' : 'Discovered check');
+    add('check', byMover(oppKing) ? 'Gives check' : 'Discovered check');
     ctx.counts.checks++;
   }
 
-  // new threats made by this move
-  const newTargets = [...tgt1].filter(([i]) => !ctx.tgt0.has(i) || i === to);
-  const byMoved = newTargets.filter(([i]) => attackersOf(b1, i, me).some((a) => a.i === to));
-  const kingHit = check && attackersOf(b1, oppKing, me).some((a) => a.i === to);
+  // new threats made by this move (a mate needs no further description)
   if (!mate) {
+    const newTargets = [...tgt1].filter(([i]) => !ctx.tgt0.has(i) || i === to);
+    const byMoved = newTargets.filter(([i]) => byMover(i));
+    const kingHit = check && byMover(oppKing);
     if (byMoved.length + (kingHit ? 1 : 0) >= 2) {
       add('fork', `Attacks ${byMoved.map(([i]) => pieceText(b1[i], i)).join(' and ')}${kingHit ? ' + king' : ''} at once`);
       ctx.counts.forks++;
-    } else {
+    } else if (byMoved.length) {
       for (const [i] of byMoved.slice(0, 3)) add('threat', `Attacks ${pieceText(b1[i], i)}`);
-      if (byMoved.length) ctx.counts.threats++;
     }
-    const disc = newTargets.filter(([i]) => !byMoved.some(([j]) => j === i));
-    for (const [i] of disc.slice(0, 2)) { add('discover', `Uncovers an attack on ${pieceText(b1[i], i)}`); ctx.counts.threats++; }
-  }
+    // targets that became winnable without the moved piece attacking them:
+    // either a line opened (a real discovery) or their defence was removed or blocked
+    let discovered = false;
+    for (const [i] of newTargets.filter(([i]) => !byMoved.some(([j]) => j === i)).slice(0, 2)) {
+      const before = new Set(attackersOf(b0, i, me).map((a) => a.i));
+      const opened = attackersOf(b1, i, me).some((a) => !movers.includes(a.i) && !before.has(a.i));
+      if (opened) { add('discover', `Uncovers an attack on ${pieceText(b1[i], i)}`); discovered = true; }
+      else add('threat', `${m.captured ? 'Removes the defender of' : 'Cuts off the defence of'} ${pieceText(b1[i], i)}`);
+    }
+    if (discovered) ctx.counts.discoveries++;
+    if (tags.some((t) => t.kind === 'threat')) ctx.counts.threats++;
 
-  // rescues
-  for (const [i] of ctx.hang0) {
-    const now = i === from ? to : i;
-    if (!hang1.has(now)) {
-      if (i === from) add('defend', `Moves the threatened ${NAME[b0[i].t]} to safety`);
-      else add('defend', `Saves ${pieceText(b0[i], i)}`);
+    // rescues
+    for (const [i] of ctx.hang0) {
+      const now = i === from ? to : i;
+      if (!hang1.has(now)) {
+        if (i === from) add('defend', `Moves the threatened ${NAME[b0[i].t]} to safety`);
+        else add('defend', `Saves ${pieceText(b0[i], i)}`);
+      }
     }
   }
 
@@ -237,8 +249,8 @@ function describeMove(chess, m, b0, ctx) {
 
   // --- warnings (hidden in plain mode) ---
   const warn = [];
-  if (m.captured && net < 0) warn.push('Loses material in the exchange');
-  for (const [i, loss] of hang1) {
+  if (!mate && m.captured && net < 0) warn.push('Loses material in the exchange');
+  if (!mate) for (const [i] of hang1) {
     const wasThreatened = ctx.hang0.has(i === to ? from : i);
     if (i === to && m.captured && net >= 0) continue;
     if (i === to) warn.push(`The ${NAME[b1[i].t]} can be captured on ${sqName(i)}`);
@@ -257,7 +269,7 @@ export function analyze(chess) {
   const me = chess.turn();
   const position = describePosition(chess, b0);
   const ctx = {
-    counts: { checks: 0, captures: 0, threats: 0, forks: 0, promotions: 0, castles: 0 },
+    counts: { mates: 0, checks: 0, captures: 0, threats: 0, discoveries: 0, forks: 0, promotions: 0, castles: 0 },
     hang0: hanging(b0, me),
     tgt0: hanging(b0, other(me)),
   };

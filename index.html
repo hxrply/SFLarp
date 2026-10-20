@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Chess Companion</title>
 <meta name="claude:viewport-fit-sides" content="cover">
+<link rel="icon" href="data:,">
 <style>
 :root{color-scheme:dark;--bg:#1f2430;--card:#2a3040;--ink:#e8ebf2;--mute:#9aa3b5;--light:#e9d9b8;--dark:#a67d52;--sel:#f6e05e;
 --capture:#e5645c;--check:#f0a23b;--threat:#d98cf0;--fork:#ff7ab6;--discover:#b79cff;--defend:#5ac98f;--develop:#5aa9e6;--center:#8fd0d0;--castle:#9bb0ff;--promo:#ffd166;--mate:#ff4d4d;--engine:#5ac98f;--warn:#ff8a80}
@@ -17,9 +18,9 @@ main{max-width:980px;margin:0 auto;display:grid;gap:12px;grid-template-columns:m
 h1{font-size:18px;margin:0 0 4px}h2{font-size:14px;margin:0 0 6px;color:var(--mute);text-transform:uppercase;letter-spacing:.05em}
 .card{background:var(--card);border-radius:12px;padding:12px;min-width:0}
 #boardwrap{position:relative}
-#board{display:grid;grid-template-columns:repeat(8,1fr);aspect-ratio:1;border-radius:8px;overflow:hidden;user-select:none;touch-action:manipulation}
+#board{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));grid-template-rows:repeat(8,minmax(0,1fr));max-width:100%;aspect-ratio:1;border-radius:8px;overflow:hidden;user-select:none;touch-action:manipulation}
 #arrows{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
-.sq{position:relative;display:flex;align-items:center;justify-content:center;font-size:min(9vw,46px);cursor:pointer;line-height:1}
+.sq{position:relative;min-width:0;min-height:0;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:min(9vw,46px);cursor:pointer;line-height:1}
 .sq.l{background:var(--light)}.sq.d{background:var(--dark)}
 .sq .p{color:#000;text-shadow:0 0 2px #fff6}.sq .p.w{color:#fff;text-shadow:0 0 2px #000,0 0 1px #000}
 .sq.sel{background:var(--sel)!important}.sq.hl{outline:3px solid var(--sel);outline-offset:-3px}
@@ -2179,7 +2180,7 @@ function describePosition(chess, b) {
   };
 }
 
-/** Per-move tags. Kinds: capture check mate threat fork discover develop castle center promo | warn */
+/** Per-move tags. Kinds: capture check mate threat fork discover defend develop castle center promo | warn */
 function describeMove(chess, m, b0, ctx) {
   const me = m.color, opp = other(me);
   const from = sqIdx(m.from), to = sqIdx(m.to);
@@ -2196,6 +2197,11 @@ function describeMove(chess, m, b0, ctx) {
   const hang1 = hanging(b1, me);
   const tgt1 = hanging(b1, opp);
   const oppKing = b1.findIndex((p) => p && p.c === opp && p.t === 'k');
+  // squares the moving side's pieces landed on (castling also moves a rook)
+  const castle = m.flags.includes('k') ? 'k' : m.flags.includes('q') ? 'q' : null;
+  const movers = [to];
+  if (castle) movers.push(sqIdx(`${castle === 'k' ? 'f' : 'd'}${m.to[1]}`));
+  const byMover = (i) => attackersOf(b1, i, me).some((a) => movers.includes(a.i));
 
   // --- facts ---
   let net = null;
@@ -2206,36 +2212,43 @@ function describeMove(chess, m, b0, ctx) {
     ctx.counts.captures++;
   }
   if (m.promotion) { add('promo', `Promotes to ${NAME[m.promotion]}`); ctx.counts.promotions++; }
-  if (m.flags.includes('k') || m.flags.includes('q')) { add('castle', m.flags.includes('k') ? 'Castles kingside' : 'Castles queenside'); ctx.counts.castles++; }
-  if (mate) add('mate', 'Checkmate');
+  if (castle) { add('castle', castle === 'k' ? 'Castles kingside' : 'Castles queenside'); ctx.counts.castles++; }
+  if (mate) { add('mate', 'Checkmate'); ctx.counts.mates++; }
   else if (check) {
-    const direct = attackersOf(b1, oppKing, me).some((a) => a.i === to);
-    add('check', direct ? 'Gives check' : 'Discovered check');
+    add('check', byMover(oppKing) ? 'Gives check' : 'Discovered check');
     ctx.counts.checks++;
   }
 
-  // new threats made by this move
-  const newTargets = [...tgt1].filter(([i]) => !ctx.tgt0.has(i) || i === to);
-  const byMoved = newTargets.filter(([i]) => attackersOf(b1, i, me).some((a) => a.i === to));
-  const kingHit = check && attackersOf(b1, oppKing, me).some((a) => a.i === to);
+  // new threats made by this move (a mate needs no further description)
   if (!mate) {
+    const newTargets = [...tgt1].filter(([i]) => !ctx.tgt0.has(i) || i === to);
+    const byMoved = newTargets.filter(([i]) => byMover(i));
+    const kingHit = check && byMover(oppKing);
     if (byMoved.length + (kingHit ? 1 : 0) >= 2) {
       add('fork', `Attacks ${byMoved.map(([i]) => pieceText(b1[i], i)).join(' and ')}${kingHit ? ' + king' : ''} at once`);
       ctx.counts.forks++;
-    } else {
+    } else if (byMoved.length) {
       for (const [i] of byMoved.slice(0, 3)) add('threat', `Attacks ${pieceText(b1[i], i)}`);
-      if (byMoved.length) ctx.counts.threats++;
     }
-    const disc = newTargets.filter(([i]) => !byMoved.some(([j]) => j === i));
-    for (const [i] of disc.slice(0, 2)) { add('discover', `Uncovers an attack on ${pieceText(b1[i], i)}`); ctx.counts.threats++; }
-  }
+    // targets that became winnable without the moved piece attacking them:
+    // either a line opened (a real discovery) or their defence was removed or blocked
+    let discovered = false;
+    for (const [i] of newTargets.filter(([i]) => !byMoved.some(([j]) => j === i)).slice(0, 2)) {
+      const before = new Set(attackersOf(b0, i, me).map((a) => a.i));
+      const opened = attackersOf(b1, i, me).some((a) => !movers.includes(a.i) && !before.has(a.i));
+      if (opened) { add('discover', `Uncovers an attack on ${pieceText(b1[i], i)}`); discovered = true; }
+      else add('threat', `${m.captured ? 'Removes the defender of' : 'Cuts off the defence of'} ${pieceText(b1[i], i)}`);
+    }
+    if (discovered) ctx.counts.discoveries++;
+    if (tags.some((t) => t.kind === 'threat')) ctx.counts.threats++;
 
-  // rescues
-  for (const [i] of ctx.hang0) {
-    const now = i === from ? to : i;
-    if (!hang1.has(now)) {
-      if (i === from) add('defend', `Moves the threatened ${NAME[b0[i].t]} to safety`);
-      else add('defend', `Saves ${pieceText(b0[i], i)}`);
+    // rescues
+    for (const [i] of ctx.hang0) {
+      const now = i === from ? to : i;
+      if (!hang1.has(now)) {
+        if (i === from) add('defend', `Moves the threatened ${NAME[b0[i].t]} to safety`);
+        else add('defend', `Saves ${pieceText(b0[i], i)}`);
+      }
     }
   }
 
@@ -2246,8 +2259,8 @@ function describeMove(chess, m, b0, ctx) {
 
   // --- warnings (hidden in plain mode) ---
   const warn = [];
-  if (m.captured && net < 0) warn.push('Loses material in the exchange');
-  for (const [i, loss] of hang1) {
+  if (!mate && m.captured && net < 0) warn.push('Loses material in the exchange');
+  if (!mate) for (const [i] of hang1) {
     const wasThreatened = ctx.hang0.has(i === to ? from : i);
     if (i === to && m.captured && net >= 0) continue;
     if (i === to) warn.push(`The ${NAME[b1[i].t]} can be captured on ${sqName(i)}`);
@@ -2266,7 +2279,7 @@ function analyze(chess) {
   const me = chess.turn();
   const position = describePosition(chess, b0);
   const ctx = {
-    counts: { checks: 0, captures: 0, threats: 0, forks: 0, promotions: 0, castles: 0 },
+    counts: { mates: 0, checks: 0, captures: 0, threats: 0, discoveries: 0, forks: 0, promotions: 0, castles: 0 },
     hang0: hanging(b0, me),
     tgt0: hanging(b0, other(me)),
   };
@@ -2346,26 +2359,40 @@ class Engine {
     this.running = false;
   }
 
-  start() {
+  /** Resolves once the engine answers `readyok`. Rejects (and shuts the worker down) on failure or timeout. */
+  start(timeoutMs = 20000) {
     if (this.ready) return this.ready;
     this.ready = new Promise((resolve, reject) => {
-      try { this.worker = new Worker(this.url); } catch (e) { reject(e); return; }
-      this.worker.onerror = (e) => reject(new Error(e.message || 'The engine could not be loaded.'));
-      this.worker.onmessage = (ev) => this.onLine(String(ev.data), resolve);
+      const fail = (msg) => { clearTimeout(timer); this.terminate(); reject(new Error(msg)); };
+      // a missing or broken .wasm fails inside the worker without an error event, so also time out
+      const timer = setTimeout(() => fail('The engine did not start (its .wasm file may be missing).'), timeoutMs);
+      try { this.worker = new Worker(this.url); } catch (e) { fail(e.message || 'The engine could not be loaded.'); return; }
+      this.worker.onerror = (e) => fail(e.message || 'The engine could not be loaded.');
+      this.worker.onmessage = (ev) => this.onLine(String(ev.data), () => { clearTimeout(timer); resolve(); });
       this.send('uci');
     });
     return this.ready;
   }
 
-  send(cmd) { this.worker.postMessage(cmd); }
+  terminate() {
+    this.worker?.terminate();
+    this.worker = null;
+    this.job = this.queued = null;
+    this.running = false;
+  }
+
+  send(cmd) { this.worker?.postMessage(cmd); }
 
   onLine(line, resolve) {
     if (line === 'uciok') this.send('isready');
     else if (line === 'readyok') resolve();
     else if (line.startsWith('bestmove')) {
       this.running = false;
+      const job = this.job;
       if (this.queued) this.flush();
-      else if (this.job) this.job.onDone?.();
+      else if (job) job.onDone?.({ rejected: job.rejected === true });
+    } else if (this.job && line.startsWith('info string') && /error|unsupported/i.test(line)) {
+      this.job.rejected = true;
     } else if (this.job) {
       const info = parseInfo(line);
       if (info) this.job.onInfo(info);
@@ -2382,7 +2409,7 @@ class Engine {
     this.send(`go depth ${j.depth}`);
   }
 
-  /** Analyse {fen, depth, lines, onInfo(info), onDone()}. Replaces any search in progress. */
+  /** Analyse {fen, depth, lines, onInfo(info), onDone({rejected})}. Replaces any search in progress. */
   analyze(job) {
     this.job = null;           // drop output from the search being replaced
     this.queued = job;
@@ -2396,10 +2423,23 @@ class Engine {
   }
 }
 
-// Board-editor helpers: turn a hand-built 64-square grid (index 0 = a8) into a validated game.
+// Position helpers for the board editor and the FEN box: build FENs from a hand-made 64-square grid
+// (index 0 = a8) and reject setups that cannot occur in a real game (Stockfish refuses those).
 
 
-function fenFromBoard(grid, turn) {
+const gridOf = (chess) => chess.board().flat().map((x) => (x ? { t: x.type, c: x.color } : null));
+
+/** Castling rights that the piece placement still allows (king and rook on their home squares). */
+function placementRights(grid) {
+  const at = (i, t, c) => grid[i] && grid[i].t === t && grid[i].c === c;
+  let rights = '';
+  if (at(60, 'k', 'w')) { if (at(63, 'r', 'w')) rights += 'K'; if (at(56, 'r', 'w')) rights += 'Q'; }
+  if (at(4, 'k', 'b')) { if (at(7, 'r', 'b')) rights += 'k'; if (at(0, 'r', 'b')) rights += 'q'; }
+  return rights;
+}
+
+/** FEN for a grid. Castling rights are `allowed` filtered down to what the placement permits. */
+function fenFromBoard(grid, turn, { allowed = 'KQkq', ep = '-', half = 0, full = 1 } = {}) {
   const rows = [];
   for (let r = 0; r < 8; r++) {
     let row = '', empty = 0;
@@ -2411,37 +2451,67 @@ function fenFromBoard(grid, turn) {
     }
     rows.push(row + (empty || ''));
   }
-  const at = (i, t, c) => grid[i] && grid[i].t === t && grid[i].c === c;
-  let rights = '';
-  if (at(60, 'k', 'w')) { if (at(63, 'r', 'w')) rights += 'K'; if (at(56, 'r', 'w')) rights += 'Q'; }
-  if (at(4, 'k', 'b')) { if (at(7, 'r', 'b')) rights += 'k'; if (at(0, 'r', 'b')) rights += 'q'; }
-  return `${rows.join('/')} ${turn} ${rights || '-'} - 0 1`;
+  const rights = placementRights(grid).split('').filter((c) => allowed.includes(c)).join('');
+  return `${rows.join('/')} ${turn} ${rights || '-'} ${ep} ${half} ${full}`;
 }
 
-/** Returns {chess} for a legal setup, or {error} explaining what is wrong. */
-function loadFromEditor(grid, turn) {
-  const kings = { w: 0, b: 0 };
+/** Piece-count checks for one grid. Returns an error message or null. */
+function gridProblem(grid) {
+  const n = { w: {}, b: {} };
   let badPawn = false;
   grid.forEach((p, i) => {
     if (!p) return;
-    if (p.t === 'k') kings[p.c]++;
+    n[p.c][p.t] = (n[p.c][p.t] || 0) + 1;
     if (p.t === 'p' && (i < 8 || i >= 56)) badPawn = true;
   });
-  if (kings.w !== 1 || kings.b !== 1) return { error: 'Each side needs exactly one king.' };
-  if (badPawn) return { error: 'Pawns cannot stand on the first or last rank.' };
-  const fen = fenFromBoard(grid, turn);
+  if (n.w.k !== 1 || n.b.k !== 1) return 'Each side needs exactly one king.';
+  if (badPawn) return 'Pawns cannot stand on the first or last rank.';
+  for (const c of ['w', 'b']) {
+    const side = c === 'w' ? 'White' : 'Black';
+    const pawns = n[c].p || 0;
+    if (pawns > 8) return `${side} has more than 8 pawns.`;
+    // every piece beyond the starting set must have come from a promoted pawn
+    const extra = Math.max(0, (n[c].q || 0) - 1) + Math.max(0, (n[c].r || 0) - 2) + Math.max(0, (n[c].b || 0) - 2) + Math.max(0, (n[c].n || 0) - 2);
+    if (extra > 8 - pawns) return `${side} has too many pieces: each extra queen, rook, bishop or knight needs a missing pawn (it would have to be a promotion).`;
+  }
+  return null;
+}
+
+/**
+ * Load a FEN as a real-game position. Castling rights the placement does not support are dropped.
+ * Returns {chess} or {error}.
+ */
+function loadPosition(fen) {
   let chess;
-  try { chess = new Chess(fen); } catch (e) { return { error: `That position is not valid (${e.message}).` }; }
-  // the side that is NOT to move must not be in check
-  const parts = fen.split(' ');
-  parts[1] = turn === 'w' ? 'b' : 'w';
-  try {
-    if (new Chess(parts.join(' ')).inCheck()) {
-      const waiting = turn === 'w' ? 'Black' : 'White';
-      return { error: `${waiting}'s king is in check, but it is the other side's turn. Change the side to move or move a piece.` };
-    }
-  } catch { /* an unloadable flipped position is caught by the checks above */ }
+  try { chess = new Chess(fen.trim()); } catch (e) { return { error: `That FEN is not valid (${e.message}).` }; }
+  const grid = gridOf(chess);
+  const problem = gridProblem(grid);
+  if (problem) return { error: problem };
+  const [, turn, rights, ep, half, full] = chess.fen().split(' ');
+  const fixed = fenFromBoard(grid, turn, { allowed: rights, ep, half, full });
+  try { chess = new Chess(fixed); } catch (e) { return { error: `That position is not valid (${e.message}).` }; }
+  // the side that is NOT to move must not be in check (this also rules out touching kings)
+  const flipped = fixed.split(' ');
+  flipped[1] = turn === 'w' ? 'b' : 'w';
+  flipped[3] = '-';
+  let waitingInCheck = false;
+  try { waitingInCheck = new Chess(flipped.join(' ')).inCheck(); } catch { waitingInCheck = true; }
+  if (waitingInCheck) {
+    const waiting = turn === 'w' ? 'Black' : 'White';
+    return { error: `${waiting}'s king is under attack but it is not ${waiting}'s move, which can't happen in a real game. Move a piece or change the side to move.` };
+  }
   return { chess };
+}
+
+/**
+ * Validate an edited grid. `base` is the FEN the edit started from: its castling rights are kept
+ * where the placement still allows them, and its move number is kept.
+ */
+function loadFromEditor(grid, turn, base) {
+  const problem = gridProblem(grid);
+  if (problem) return { error: problem };
+  const [, , rights = 'KQkq', , , full = '1'] = (base || '').split(' ');
+  return loadPosition(fenFromBoard(grid, turn, { allowed: base ? rights : 'KQkq', full }));
 }
 
 
@@ -2452,14 +2522,14 @@ function loadFromEditor(grid, turn) {
 const $ = (id) => document.getElementById(id);
 const GLYPH = { wk: '♔', wq: '♕', wr: '♖', wb: '♗', wn: '♘', wp: '♙', bk: '♚', bq: '♛', br: '♜', bb: '♝', bn: '♞', bp: '♟' };
 const PIECE_NAME = { k: 'King', q: 'Queen', r: 'Rooks', b: 'Bishops', n: 'Knights', p: 'Pawns' };
-const THEMES = [['check', 'Checks'], ['capture', 'Captures'], ['threat', 'Threats'], ['fork', 'Forks'], ['discover', 'Discoveries'], ['defend', 'Defensive'], ['develop', 'Development'], ['castle', 'Castling'], ['promo', 'Promotions']];
+const THEMES = [['mate', 'Checkmate'], ['check', 'Checks'], ['capture', 'Captures'], ['threat', 'Threats'], ['fork', 'Forks'], ['discover', 'Discoveries'], ['defend', 'Defensive'], ['develop', 'Development'], ['castle', 'Castling'], ['promo', 'Promotions']];
 const PRIORITY = ['mate', 'check', 'fork', 'capture', 'threat', 'discover', 'defend', 'promo', 'castle', 'develop', 'center'];
 const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
 let chess = new Chess();
 let flipped = false, selected = null, highlight = null, info = null, filter = null;
 // editor
-let editing = false, editBoard = null, editTool = 'hand', handFrom = null;
+let editing = false, editBoard = null, editTool = 'hand', handFrom = null, editBase = null, editStart = null;
 // engine
 let engine = null, engineToken = 0, engineTimer = 0;
 let eng = { status: 'idle', lines: [], depth: 0, fen: '', turn: 'w', msg: '' };
@@ -2476,7 +2546,7 @@ const say = (t) => { $('msg').textContent = t; };
 const engineMove = (line) => ({ from: line.pv[0].slice(0, 2), to: line.pv[0].slice(2, 4) });
 function enginePick(m) {
   if (!settings.engine) return -1;
-  return eng.lines.findIndex((l) => l && l.pv[0].slice(0, 2) === m.from && l.pv[0].slice(2, 4) === m.to);
+  return eng.lines.findIndex((l) => l && l.pv[0].slice(0, 2) === m.from && l.pv[0].slice(2, 4) === m.to && (l.pv[0][4] || '') === (m.promotion || ''));
 }
 
 function runEngine() {
@@ -2499,7 +2569,7 @@ function runEngine() {
       engine = null;
       eng = { ...eng, status: 'error', msg: location.protocol === 'file:'
         ? 'The engine cannot start from a local file. Open the hosted page (GitHub Pages) instead.'
-        : 'The engine could not be loaded.' };
+        : `${e.message || 'The engine could not be loaded.'} Turn "Engine suggestions" off and on to try again.` };
       renderEngine();
       return;
     }
@@ -2518,7 +2588,12 @@ function runEngine() {
         const key = eng.lines.map((l) => l && l.pv[0]).join(',');
         if (key !== topKey) { topKey = key; drawArrows(); renderMoves(); }
       },
-      onDone() { if (token === engineToken) { eng.status = 'done'; renderEngine(); } },
+      onDone({ rejected }) {
+        if (token !== engineToken) return;
+        eng.status = 'done';
+        if (rejected) eng.lines = [];
+        renderEngine(); drawArrows(); renderMoves();
+      },
     });
   }, 150);
 }
@@ -2538,7 +2613,8 @@ function renderEngine() {
     const v = scoreValue(l.score, eng.turn);
     return `<div class="eline" data-r="${r}"><span class="rank">${r + 1}</span><span class="ev ${v > 30 ? 'pos' : v < -30 ? 'neg' : ''}">${fmtScore(l.score, eng.turn)}</span><span class="pv"><b>${esc(san[0])}</b> ${esc(san.slice(1).join(' '))}</span></div>`;
   }).join('');
-  el.innerHTML = `<h2>Stockfish 19 &middot; <span class="mute" style="text-transform:none;letter-spacing:0">${state}</span></h2>${rows || '<div class="mute">Working out the best moves…</div>'}
+  const empty = eng.status === 'done' ? '<div class="bad">Stockfish could not analyse this position.</div>' : '<div class="mute">Working out the best moves…</div>';
+  el.innerHTML = `<h2>Stockfish 19 &middot; <span class="mute" style="text-transform:none;letter-spacing:0">${state}</span></h2>${rows || empty}
    <div class="mute" style="font-size:12px;margin-top:6px">Scores are from White's side (+ is better for White, #3 is mate in 3). Tap a line to see its first move.</div>`;
   el.querySelectorAll('.eline').forEach((row) => {
     row.onclick = () => { const m = engineMove(eng.lines[row.dataset.r]); selected = m.from; highlight = [m.from, m.to]; renderBoard(); };
@@ -2645,7 +2721,7 @@ function renderAware() {
     if (p.opening.undeveloped.length) open.push(`Still at home: ${p.opening.undeveloped.join(', ')}`);
     open.push(p.opening.castlingRights ? 'You can still castle.' : 'Castling rights are gone.');
   }
-  const themes = [['Checks', c.checks], ['Captures', c.captures], ['Threats', c.threats], ['Forks', c.forks], ['Promotions', c.promotions], ['Castling', c.castles]];
+  const themes = [['Checkmate', c.mates], ['Checks', c.checks], ['Captures', c.captures], ['Threats', c.threats], ['Discoveries', c.discoveries], ['Forks', c.forks], ['Promotions', c.promotions], ['Castling', c.castles]];
   el.innerHTML = `<h2>Look around &mdash; ${you}</h2>
    <div>Material: ${p.material.you} vs ${p.material.them} (<b class="${p.material.diff < 0 ? 'bad' : p.material.diff > 0 ? 'good' : ''}">${sign}</b>) &middot; ${c.total} legal moves${p.theirChecks ? ` &middot; they have ${p.theirChecks} check${p.theirChecks > 1 ? 's' : ''} available` : ''}</div>
    ${danger.length ? `<h2 style="margin-top:10px">Watch out</h2>${list(danger, 'bad')}` : ''}
@@ -2694,7 +2770,6 @@ function renderMoves() {
 }
 
 /* ---------- position editor ---------- */
-const gridOf = (c) => c.board().flat().map((x) => (x ? { t: x.type, c: x.color } : null));
 const START_GRID = gridOf(new Chess(START_FEN));
 
 function buildPalette() {
@@ -2706,6 +2781,7 @@ function buildPalette() {
 function startEditing() {
   editing = true; selected = highlight = handFrom = null;
   editBoard = gridOf(chess); editTool = 'hand';
+  editBase = chess.fen(); editStart = JSON.stringify(editBoard);
   $('editturn').value = chess.turn();
   $('editor').hidden = false; $('moveform').hidden = true; $('edit').classList.add('on');
   say(''); buildPalette(); runEngine(); render();
@@ -2729,24 +2805,45 @@ $('undo').onclick = () => { if (editing) return; chess.undo(); selected = highli
 $('flip').onclick = () => { flipped = !flipped; render(); };
 $('edit').onclick = () => (editing ? ($('ecancel').onclick()) : startEditing());
 $('new').onclick = () => { stopEditing(); chess = new Chess(); selected = highlight = filter = null; say(''); refresh(); };
-$('eclear').onclick = () => { editBoard = Array(64).fill(null); handFrom = null; say(''); renderBoard(); };
-$('estart').onclick = () => { editBoard = START_GRID.map((p) => p && { ...p }); $('editturn').value = 'w'; handFrom = null; say(''); renderBoard(); };
-$('ereset').onclick = () => { editBoard = gridOf(chess); $('editturn').value = chess.turn(); handFrom = null; say(''); renderBoard(); };
+// a cleared board is a fresh setup (castling allowed wherever king and rook stand at home)
+$('eclear').onclick = () => { editBoard = Array(64).fill(null); editBase = null; handFrom = null; say(''); renderBoard(); };
+$('estart').onclick = () => { editBoard = START_GRID.map((p) => p && { ...p }); editBase = START_FEN; $('editturn').value = 'w'; handFrom = null; say(''); renderBoard(); };
+$('ereset').onclick = () => { editBoard = gridOf(chess); editBase = chess.fen(); $('editturn').value = chess.turn(); handFrom = null; say(''); renderBoard(); };
 $('ecancel').onclick = () => { stopEditing(); say(''); refresh(); };
 $('edone').onclick = () => {
-  const r = loadFromEditor(editBoard, $('editturn').value);
+  const turn = $('editturn').value;
+  if (editBase === chess.fen() && JSON.stringify(editBoard) === editStart && turn === chess.turn()) {
+    stopEditing(); say(''); refresh(); return; // nothing changed: keep the game, its history and its rights
+  }
+  const r = loadFromEditor(editBoard, turn, editBase);
   if (r.error) { say(r.error); return; }
   stopEditing(); chess = r.chess; selected = highlight = filter = null; say(''); refresh();
 };
 $('loadfen').onclick = () => {
-  try { const c = new Chess($('fen').value.trim()); stopEditing(); chess = c; selected = highlight = null; say(''); refresh(); }
-  catch { say('That FEN is not valid.'); }
+  const r = loadPosition($('fen').value);
+  if (r.error) { say(r.error); return; }
+  stopEditing(); chess = r.chess; selected = highlight = filter = null; say(''); refresh();
 };
+/** Typed move -> played move, accepting nc3 / 0-0 / oo / e2e4 as well as proper SAN. */
+function playTyped(txt) {
+  const tries = [txt];
+  const castle = txt.replace(/[-\s]/g, '').toUpperCase().replace(/0/g, 'O');
+  if (castle === 'OO') tries.push('O-O');
+  if (castle === 'OOO') tries.push('O-O-O');
+  if (/^[nbrqk]/.test(txt)) tries.push(txt[0].toUpperCase() + txt.slice(1)); // "bxc3" is tried as a pawn move first
+  for (const t of tries) { try { return chess.move(t); } catch { /* try the next spelling */ } }
+  const coord = txt.toLowerCase().match(/^([a-h][1-8])-?([a-h][1-8])=?([qrbn])?$/);
+  if (coord) { try { return chess.move({ from: coord[1], to: coord[2], promotion: coord[3] || 'q' }); } catch { /* not legal */ } }
+  return null;
+}
 $('moveform').onsubmit = (e) => {
   e.preventDefault();
   const txt = $('mvin').value.trim();
   if (!txt) return;
-  try { chess.move(txt); } catch { say(`"${txt}" is not a legal move here.`); return; }
+  if (!playTyped(txt)) {
+    say(chess.isGameOver() ? 'The game is over.' : `"${txt}" is not a legal move here. Try e4, Nf3, exd5, O-O or e2e4.`);
+    return;
+  }
   $('mvin').value = ''; say(''); selected = highlight = null; refresh();
 };
 $('level').value = settings.level; $('warn').checked = settings.warn;

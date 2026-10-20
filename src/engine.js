@@ -61,26 +61,40 @@ export class Engine {
     this.running = false;
   }
 
-  start() {
+  /** Resolves once the engine answers `readyok`. Rejects (and shuts the worker down) on failure or timeout. */
+  start(timeoutMs = 20000) {
     if (this.ready) return this.ready;
     this.ready = new Promise((resolve, reject) => {
-      try { this.worker = new Worker(this.url); } catch (e) { reject(e); return; }
-      this.worker.onerror = (e) => reject(new Error(e.message || 'The engine could not be loaded.'));
-      this.worker.onmessage = (ev) => this.onLine(String(ev.data), resolve);
+      const fail = (msg) => { clearTimeout(timer); this.terminate(); reject(new Error(msg)); };
+      // a missing or broken .wasm fails inside the worker without an error event, so also time out
+      const timer = setTimeout(() => fail('The engine did not start (its .wasm file may be missing).'), timeoutMs);
+      try { this.worker = new Worker(this.url); } catch (e) { fail(e.message || 'The engine could not be loaded.'); return; }
+      this.worker.onerror = (e) => fail(e.message || 'The engine could not be loaded.');
+      this.worker.onmessage = (ev) => this.onLine(String(ev.data), () => { clearTimeout(timer); resolve(); });
       this.send('uci');
     });
     return this.ready;
   }
 
-  send(cmd) { this.worker.postMessage(cmd); }
+  terminate() {
+    this.worker?.terminate();
+    this.worker = null;
+    this.job = this.queued = null;
+    this.running = false;
+  }
+
+  send(cmd) { this.worker?.postMessage(cmd); }
 
   onLine(line, resolve) {
     if (line === 'uciok') this.send('isready');
     else if (line === 'readyok') resolve();
     else if (line.startsWith('bestmove')) {
       this.running = false;
+      const job = this.job;
       if (this.queued) this.flush();
-      else if (this.job) this.job.onDone?.();
+      else if (job) job.onDone?.({ rejected: job.rejected === true });
+    } else if (this.job && line.startsWith('info string') && /error|unsupported/i.test(line)) {
+      this.job.rejected = true;
     } else if (this.job) {
       const info = parseInfo(line);
       if (info) this.job.onInfo(info);
@@ -97,7 +111,7 @@ export class Engine {
     this.send(`go depth ${j.depth}`);
   }
 
-  /** Analyse {fen, depth, lines, onInfo(info), onDone()}. Replaces any search in progress. */
+  /** Analyse {fen, depth, lines, onInfo(info), onDone({rejected})}. Replaces any search in progress. */
   analyze(job) {
     this.job = null;           // drop output from the search being replaced
     this.queued = job;

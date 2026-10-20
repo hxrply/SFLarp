@@ -43,6 +43,6 @@ test('loadFromEditor accepts legal setups and rejects illegal ones', () => {
   assert.match(loadFromEditor(pawn, 'w').error, /first or last rank/);
   // white rook gives check to black king, but it is "white to move"
   const bad = grid('4k3/8/8/8/8/8/8/4K3 w - - 0 1'); bad[4 * 8 + 4] = { t: 'r', c: 'w' }; // rook e4 attacks king e8
-  assert.match(loadFromEditor(bad, 'w').error, /in check/);
+  assert.match(loadFromEditor(bad, 'w').error, /under attack/);
   assert.ok(loadFromEditor(bad, 'b').chess, 'it is fine when it is Black to move (black is in check)');
 });

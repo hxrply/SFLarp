@@ -1,5 +1,6 @@
 <title>Chess Companion</title>
 <meta name="claude:viewport-fit-sides" content="cover">
+<link rel="icon" href="data:,">
 <style>
 :root{color-scheme:dark;--bg:#1f2430;--card:#2a3040;--ink:#e8ebf2;--mute:#9aa3b5;--light:#e9d9b8;--dark:#a67d52;--sel:#f6e05e;
 --capture:#e5645c;--check:#f0a23b;--threat:#d98cf0;--fork:#ff7ab6;--discover:#b79cff;--defend:#5ac98f;--develop:#5aa9e6;--center:#8fd0d0;--castle:#9bb0ff;--promo:#ffd166;--mate:#ff4d4d;--engine:#5ac98f;--warn:#ff8a80}
@@ -12,9 +13,9 @@ main{max-width:980px;margin:0 auto;display:grid;gap:12px;grid-template-columns:m
 h1{font-size:18px;margin:0 0 4px}h2{font-size:14px;margin:0 0 6px;color:var(--mute);text-transform:uppercase;letter-spacing:.05em}
 .card{background:var(--card);border-radius:12px;padding:12px;min-width:0}
 #boardwrap{position:relative}
-#board{display:grid;grid-template-columns:repeat(8,1fr);aspect-ratio:1;border-radius:8px;overflow:hidden;user-select:none;touch-action:manipulation}
+#board{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));grid-template-rows:repeat(8,minmax(0,1fr));max-width:100%;aspect-ratio:1;border-radius:8px;overflow:hidden;user-select:none;touch-action:manipulation}
 #arrows{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
-.sq{position:relative;display:flex;align-items:center;justify-content:center;font-size:min(9vw,46px);cursor:pointer;line-height:1}
+.sq{position:relative;min-width:0;min-height:0;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:min(9vw,46px);cursor:pointer;line-height:1}
 .sq.l{background:var(--light)}.sq.d{background:var(--dark)}
 .sq .p{color:#000;text-shadow:0 0 2px #fff6}.sq .p.w{color:#fff;text-shadow:0 0 2px #000,0 0 1px #000}
 .sq.sel{background:var(--sel)!important}.sq.hl{outline:3px solid var(--sel);outline-offset:-3px}
