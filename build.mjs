@@ -3,9 +3,12 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 const strip = (code) => code
   .replace(/^import .*$/gm, '')
-  .replace(/^export (const|function|class) /gm, '$1 ');
+  .replace(/^export (const|let|function|async function|class) /gm, '$1 ');
 const files = ['vendor/chess.js', 'src/awareness.js', 'src/engine.js', 'src/editor.js', 'src/app.js'];
 const js = files.map((f) => strip(readFileSync(f, 'utf8'))).join('\n');
+const leftover = js.match(/^(import|export)\b.*$/m);
+if (leftover) throw new Error(`build: module syntax left in the bundle: ${leftover[0]}`);
+new Function(js); // fail the build on a syntax error instead of shipping a blank page
 const fragment = readFileSync('src/template.html', 'utf8')
   .replace('/*SCRIPT*/', () => `(() => {\n${js.replace(/<\/script/gi, '<\\/script')}\n})();`);
 const [headPart, ...rest] = fragment.split('</style>\n');
@@ -21,4 +24,7 @@ ${rest.join('</style>\n')}</body>
 </html>
 `;
 writeFileSync('index.html', page);
+// `node build.mjs --fragment out.html` also writes the page without its document wrapper (for hosts that add their own)
+const at = process.argv.indexOf('--fragment');
+if (at > 0) writeFileSync(process.argv[at + 1], fragment);
 console.log(`index.html ${(page.length / 1024).toFixed(0)} KB`);

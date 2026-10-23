@@ -32,4 +32,4 @@ See [NOTES.md](NOTES.md) for how Stockfish works and how the awareness layer dif
 
 ## Third-party code
 - `vendor/chess.js` – [chess.js](https://github.com/jhlywa/chess.js) 1.0.0-beta.8 (BSD-2, `vendor/chess.js.LICENSE`).
-- `vendor/stockfish/` – [Stockfish.js](https://github.com/nmrugg/stockfish.js) 19 lite single-threaded, built from [Stockfish](https://github.com/official-stockfish/Stockfish). **GPL-3.0**, see `vendor/stockfish/Copying.txt`.
+- `vendor/stockfish/` – [Stockfish.js](https://github.com/nmrugg/stockfish.js) 19, built from [Stockfish](https://github.com/official-stockfish/Stockfish): the lite single-threaded WebAssembly build, plus the pure-JavaScript (asm.js) build used automatically when a host blocks WebAssembly or the `.wasm` is missing. **GPL-3.0**, see `vendor/stockfish/Copying.txt`.

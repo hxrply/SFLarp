@@ -2299,7 +2299,28 @@ function analyze(chess) {
 // Thin wrapper around Stockfish.js (UCI over postMessage) plus helpers for reading its output.
 
 
-const ENGINE_URL = 'vendor/stockfish/stockfish-19-lite-single.js';
+// Tried in order: the fast WebAssembly build, then the pure-JavaScript build for hosts that block WebAssembly.
+const ENGINE_BUILDS = [
+  { name: 'Stockfish 19', url: 'vendor/stockfish/stockfish-19-lite-single.js', wasm: 'vendor/stockfish/stockfish-19-lite-single.wasm' },
+  { name: 'Stockfish 19 (backup engine, slower)', url: 'vendor/stockfish/stockfish-19-asm.js' },
+];
+
+/** False when this page cannot run WebAssembly (e.g. a strict Content-Security-Policy) or the .wasm file is missing. */
+async function wasmUsable(wasmUrl) {
+  try { new WebAssembly.Module(new Uint8Array([0, 97, 115, 109, 1, 0, 0, 0])); } catch { return false; }
+  try { return (await fetch(wasmUrl, { method: 'HEAD' })).status !== 404; } catch { return true; } // unknown: let the worker try
+}
+
+/** Start the first build that works. Resolves to a ready Engine (with .name) or rejects with the last error. */
+async function startEngine(builds = ENGINE_BUILDS) {
+  let lastError = new Error('The engine could not be loaded.');
+  for (const b of builds) {
+    if (b.wasm && !(await wasmUsable(b.wasm))) continue;
+    const engine = new Engine(b.url);
+    try { await engine.start(); engine.name = b.name; return engine; } catch (e) { lastError = e; }
+  }
+  throw lastError;
+}
 
 /** Parse one UCI "info ... pv ..." line. Returns null for lines without a usable score + pv. */
 function parseInfo(line) {
@@ -2531,7 +2552,7 @@ let flipped = false, selected = null, highlight = null, info = null, filter = nu
 // editor
 let editing = false, editBoard = null, editTool = 'hand', handFrom = null, editBase = null, editStart = null;
 // engine
-let engine = null, engineToken = 0, engineTimer = 0;
+let engine = null, engineStarting = null, engineToken = 0, engineTimer = 0;
 let eng = { status: 'idle', lines: [], depth: 0, fen: '', turn: 'w', msg: '' };
 
 const settings = { level: '2', warn: true, engine: true, lines: '3', depth: '16' };
@@ -2563,10 +2584,10 @@ function runEngine() {
   if (eng.status === 'error') return;
   engineTimer = setTimeout(async () => {
     try {
-      engine ||= new Engine(ENGINE_URL);
-      await engine.start();
+      engineStarting ||= startEngine(); // shared, so overlapping calls never start two workers
+      engine = await engineStarting;
     } catch (e) {
-      engine = null;
+      engine = null; engineStarting = null;
       eng = { ...eng, status: 'error', msg: location.protocol === 'file:'
         ? 'The engine cannot start from a local file. Open the hosted page (GitHub Pages) instead.'
         : `${e.message || 'The engine could not be loaded.'} Turn "Engine suggestions" off and on to try again.` };
@@ -2614,7 +2635,7 @@ function renderEngine() {
     return `<div class="eline" data-r="${r}"><span class="rank">${r + 1}</span><span class="ev ${v > 30 ? 'pos' : v < -30 ? 'neg' : ''}">${fmtScore(l.score, eng.turn)}</span><span class="pv"><b>${esc(san[0])}</b> ${esc(san.slice(1).join(' '))}</span></div>`;
   }).join('');
   const empty = eng.status === 'done' ? '<div class="bad">Stockfish could not analyse this position.</div>' : '<div class="mute">Working out the best moves…</div>';
-  el.innerHTML = `<h2>Stockfish 19 &middot; <span class="mute" style="text-transform:none;letter-spacing:0">${state}</span></h2>${rows || empty}
+  el.innerHTML = `<h2>${esc(engine?.name || 'Stockfish 19')} &middot; <span class="mute" style="text-transform:none;letter-spacing:0">${state}</span></h2>${rows || empty}
    <div class="mute" style="font-size:12px;margin-top:6px">Scores are from White's side (+ is better for White, #3 is mate in 3). Tap a line to see its first move.</div>`;
   el.querySelectorAll('.eline').forEach((row) => {
     row.onclick = () => { const m = engineMove(eng.lines[row.dataset.r]); selected = m.from; highlight = [m.from, m.to]; renderBoard(); };

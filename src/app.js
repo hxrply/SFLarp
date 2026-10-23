@@ -1,6 +1,6 @@
 import { Chess } from '../vendor/chess.js';
 import { analyze, sqName } from './awareness.js';
-import { Engine, ENGINE_URL, fmtScore, scoreValue, pvToSan } from './engine.js';
+import { startEngine, fmtScore, scoreValue, pvToSan } from './engine.js';
 import { loadFromEditor, loadPosition, gridOf } from './editor.js';
 
 const $ = (id) => document.getElementById(id);
@@ -15,7 +15,7 @@ let flipped = false, selected = null, highlight = null, info = null, filter = nu
 // editor
 let editing = false, editBoard = null, editTool = 'hand', handFrom = null, editBase = null, editStart = null;
 // engine
-let engine = null, engineToken = 0, engineTimer = 0;
+let engine = null, engineStarting = null, engineToken = 0, engineTimer = 0;
 let eng = { status: 'idle', lines: [], depth: 0, fen: '', turn: 'w', msg: '' };
 
 const settings = { level: '2', warn: true, engine: true, lines: '3', depth: '16' };
@@ -47,10 +47,10 @@ function runEngine() {
   if (eng.status === 'error') return;
   engineTimer = setTimeout(async () => {
     try {
-      engine ||= new Engine(ENGINE_URL);
-      await engine.start();
+      engineStarting ||= startEngine(); // shared, so overlapping calls never start two workers
+      engine = await engineStarting;
     } catch (e) {
-      engine = null;
+      engine = null; engineStarting = null;
       eng = { ...eng, status: 'error', msg: location.protocol === 'file:'
         ? 'The engine cannot start from a local file. Open the hosted page (GitHub Pages) instead.'
         : `${e.message || 'The engine could not be loaded.'} Turn "Engine suggestions" off and on to try again.` };
@@ -98,7 +98,7 @@ function renderEngine() {
     return `<div class="eline" data-r="${r}"><span class="rank">${r + 1}</span><span class="ev ${v > 30 ? 'pos' : v < -30 ? 'neg' : ''}">${fmtScore(l.score, eng.turn)}</span><span class="pv"><b>${esc(san[0])}</b> ${esc(san.slice(1).join(' '))}</span></div>`;
   }).join('');
   const empty = eng.status === 'done' ? '<div class="bad">Stockfish could not analyse this position.</div>' : '<div class="mute">Working out the best moves…</div>';
-  el.innerHTML = `<h2>Stockfish 19 &middot; <span class="mute" style="text-transform:none;letter-spacing:0">${state}</span></h2>${rows || empty}
+  el.innerHTML = `<h2>${esc(engine?.name || 'Stockfish 19')} &middot; <span class="mute" style="text-transform:none;letter-spacing:0">${state}</span></h2>${rows || empty}
    <div class="mute" style="font-size:12px;margin-top:6px">Scores are from White's side (+ is better for White, #3 is mate in 3). Tap a line to see its first move.</div>`;
   el.querySelectorAll('.eline').forEach((row) => {
     row.onclick = () => { const m = engineMove(eng.lines[row.dataset.r]); selected = m.from; highlight = [m.from, m.to]; renderBoard(); };

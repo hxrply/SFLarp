@@ -1,7 +1,28 @@
 // Thin wrapper around Stockfish.js (UCI over postMessage) plus helpers for reading its output.
 import { Chess } from '../vendor/chess.js';
 
-export const ENGINE_URL = 'vendor/stockfish/stockfish-19-lite-single.js';
+// Tried in order: the fast WebAssembly build, then the pure-JavaScript build for hosts that block WebAssembly.
+export const ENGINE_BUILDS = [
+  { name: 'Stockfish 19', url: 'vendor/stockfish/stockfish-19-lite-single.js', wasm: 'vendor/stockfish/stockfish-19-lite-single.wasm' },
+  { name: 'Stockfish 19 (backup engine, slower)', url: 'vendor/stockfish/stockfish-19-asm.js' },
+];
+
+/** False when this page cannot run WebAssembly (e.g. a strict Content-Security-Policy) or the .wasm file is missing. */
+async function wasmUsable(wasmUrl) {
+  try { new WebAssembly.Module(new Uint8Array([0, 97, 115, 109, 1, 0, 0, 0])); } catch { return false; }
+  try { return (await fetch(wasmUrl, { method: 'HEAD' })).status !== 404; } catch { return true; } // unknown: let the worker try
+}
+
+/** Start the first build that works. Resolves to a ready Engine (with .name) or rejects with the last error. */
+export async function startEngine(builds = ENGINE_BUILDS) {
+  let lastError = new Error('The engine could not be loaded.');
+  for (const b of builds) {
+    if (b.wasm && !(await wasmUsable(b.wasm))) continue;
+    const engine = new Engine(b.url);
+    try { await engine.start(); engine.name = b.name; return engine; } catch (e) { lastError = e; }
+  }
+  throw lastError;
+}
 
 /** Parse one UCI "info ... pv ..." line. Returns null for lines without a usable score + pv. */
 export function parseInfo(line) {
