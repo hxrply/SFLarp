@@ -13,11 +13,14 @@ A pocket chess helper: every legal move explained, plus Stockfish's best lines.
 
 Engine suggestions can be switched off in Settings (then it is awareness-only).
 
-## Turning on GitHub Pages (one-time)
-Repo **Settings → Pages → Build and deployment → Source: Deploy from a branch → Branch: `claude/dazzling-carson-fxnb5n`, folder `/ (root)` → Save.**
-After a minute the page is at `https://hxrply.github.io/SFLarp/`. Open it on your phone and use *Add to Home Screen*.
+## Hosting
+GitHub Pages serves the `gh-pages` branch at https://hxrply.github.io/SFLarp/ (`main` holds the same code, like the other hxrply projects). After changing anything, rebuild and push the same commit to both branches:
+```
+node build.mjs && git push origin HEAD:main HEAD:gh-pages
+```
+On a phone, open the link and use *Add to Home Screen*; it then opens full screen like an app.
 
-The engine runs in a Web Worker, so the page must be served over http(s) (GitHub Pages is fine). Opening `index.html` straight from disk still works, but only the awareness features; the engine card says so.
+The engine runs in a Web Worker, so the page must be served over http(s). Opening `index.html` straight from disk still works, but only the awareness features; the engine card says so. If a host blocks WebAssembly, a slower pure-JavaScript Stockfish build takes over automatically.
 
 ## Fair play
 Don't use engine suggestions in rated or live games on sites such as chess.com or lichess (it breaks their fair-play rules and gets accounts closed). Use it for analysis, practice, and games with friends who agree to it.
