@@ -1,8 +1,8 @@
-# Chess Companion
+# SFLarp
 
 A pocket chess helper: every legal move explained, plus Stockfish's best lines.
 
-**Live page (GitHub Pages):** https://hxrply.github.io/SFLarp/
+**Live:** https://hxrply.github.io/SFLarp/
 
 ## What it does
 - **Engine suggestions** – Stockfish 19 (in your browser, nothing is sent anywhere) shows its top 1–5 lines with scores, draws arrows on the board and stars its picks in the move list.

@@ -3,9 +3,17 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Chess Companion</title>
+<title>SFLarp</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="icon" href="data:,">
+<meta name="description" content="SFLarp: a chess helper with Stockfish's best lines, every legal move explained, and a board editor for any position.">
+<meta name="theme-color" content="#1f2430">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SFLarp">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <style>
 :root{color-scheme:dark;--bg:#1f2430;--card:#2a3040;--ink:#e8ebf2;--mute:#9aa3b5;--light:#e9d9b8;--dark:#a67d52;--sel:#f6e05e;
 --capture:#e5645c;--check:#f0a23b;--threat:#d98cf0;--fork:#ff7ab6;--discover:#b79cff;--defend:#5ac98f;--develop:#5aa9e6;--center:#8fd0d0;--castle:#9bb0ff;--promo:#ffd166;--mate:#ff4d4d;--engine:#5ac98f;--warn:#ff8a80}
@@ -58,7 +66,7 @@ details summary{cursor:pointer;color:var(--mute)}
 <main>
  <section>
   <div class="card">
-   <h1>♞ Chess Companion</h1>
+   <h1>♞ SFLarp</h1>
    <div class="mute" style="font-size:13px;margin-bottom:8px">Every legal move explained, plus Stockfish's best lines. Play both sides' moves to track your game, or set up any position.</div>
    <div id="boardwrap"><div id="board"></div><svg id="arrows" viewBox="0 0 8 8" aria-hidden="true"></svg></div>
    <div id="status" style="margin-top:8px"></div>
