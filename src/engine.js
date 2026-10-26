@@ -129,10 +129,10 @@ export class Engine {
     this.running = true;
     this.send(`setoption name MultiPV value ${j.lines}`);
     this.send(`position fen ${j.fen}`);
-    this.send(`go depth ${j.depth}`);
+    this.send(j.movetime ? `go movetime ${j.movetime}` : `go depth ${j.depth}`);
   }
 
-  /** Analyse {fen, depth, lines, onInfo(info), onDone({rejected})}. Replaces any search in progress. */
+  /** Analyse {fen, depth | movetime (ms), lines, onInfo(info), onDone({rejected})}. Replaces any search in progress. */
   analyze(job) {
     this.job = null;           // drop output from the search being replaced
     this.queued = job;

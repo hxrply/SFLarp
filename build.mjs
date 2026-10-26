@@ -4,7 +4,14 @@ import { readFileSync, writeFileSync } from 'node:fs';
 const strip = (code) => code
   .replace(/^import .*$/gm, '')
   .replace(/^export (const|let|function|async function|class) /gm, '$1 ');
-const files = ['vendor/chess.js', 'src/awareness.js', 'src/engine.js', 'src/editor.js', 'src/app.js'];
+const files = ['vendor/chess.js', 'src/awareness.js', 'src/engine.js', 'src/editor.js', 'src/openings.js', 'src/app.js'];
+// every module imported by a bundled file must itself be bundled (in order) or the page breaks at runtime
+for (const f of files) {
+  for (const [, rel] of readFileSync(f, 'utf8').matchAll(/^import .* from '(.+)';$/gm)) {
+    const target = new URL(rel, `file:///${f}`).pathname.slice(1);
+    if (files.indexOf(target) < 0 || files.indexOf(target) > files.indexOf(f)) throw new Error(`build: ${f} imports ${target}, which is not bundled before it`);
+  }
+}
 const js = files.map((f) => strip(readFileSync(f, 'utf8'))).join('\n');
 const leftover = js.match(/^(import|export)\b.*$/m);
 if (leftover) throw new Error(`build: module syntax left in the bundle: ${leftover[0]}`);

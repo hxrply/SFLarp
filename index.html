@@ -16,7 +16,7 @@
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <style>
 :root{color-scheme:dark;--bg:#1f2430;--card:#2a3040;--ink:#e8ebf2;--mute:#9aa3b5;--light:#e9d9b8;--dark:#a67d52;--sel:#f6e05e;
---capture:#e5645c;--check:#f0a23b;--threat:#d98cf0;--fork:#ff7ab6;--discover:#b79cff;--defend:#5ac98f;--develop:#5aa9e6;--center:#8fd0d0;--castle:#9bb0ff;--promo:#ffd166;--mate:#ff4d4d;--engine:#5ac98f;--warn:#ff8a80}
+--capture:#e5645c;--check:#f0a23b;--threat:#d98cf0;--fork:#ff7ab6;--discover:#b79cff;--defend:#5ac98f;--develop:#5aa9e6;--center:#8fd0d0;--castle:#9bb0ff;--promo:#ffd166;--mate:#ff4d4d;--engine:#5ac98f;--plan:#f0b429;--warn:#ff8a80}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 system-ui,sans-serif;padding-block:12px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
@@ -43,7 +43,7 @@ textarea{width:100%;font-size:12px}
 #msg{min-height:1.2em;font-size:13px;color:var(--warn);margin-top:4px}
 .chip{display:inline-block;border-radius:999px;padding:1px 9px;font-size:12px;margin:2px 4px 2px 0;color:#14171f;background:var(--c,#aab)}
 .chip.warn{background:none;border:1px solid var(--warn);color:var(--warn)}
-.k-capture{--c:var(--capture)}.k-check{--c:var(--check)}.k-threat{--c:var(--threat)}.k-fork{--c:var(--fork)}.k-discover{--c:var(--discover)}.k-defend{--c:var(--defend)}.k-develop{--c:var(--develop)}.k-center{--c:var(--center)}.k-castle{--c:var(--castle)}.k-promo{--c:var(--promo)}.k-mate{--c:var(--mate)}.k-engine{--c:var(--engine);font-weight:600}
+.k-capture{--c:var(--capture)}.k-check{--c:var(--check)}.k-threat{--c:var(--threat)}.k-fork{--c:var(--fork)}.k-discover{--c:var(--discover)}.k-defend{--c:var(--defend)}.k-develop{--c:var(--develop)}.k-center{--c:var(--center)}.k-castle{--c:var(--castle)}.k-promo{--c:var(--promo)}.k-mate{--c:var(--mate)}.k-engine{--c:var(--engine);font-weight:600}.k-plan{--c:var(--plan);font-weight:600}
 .aw ul{margin:2px 0 8px;padding-left:18px}.aw li{margin:2px 0}.bad{color:var(--warn)}.good{color:var(--defend)}.mute{color:var(--mute)}
 .mv{padding:6px 8px;border-radius:8px;cursor:pointer}.mv:hover,.mv.act{background:#363e54}
 .mv b{display:inline-block;min-width:54px}
@@ -56,6 +56,28 @@ details summary{cursor:pointer;color:var(--mute)}
 .eline .ev{flex:none;min-width:4.2em;font-variant-numeric:tabular-nums;font-weight:600}
 .eline .pv{min-width:0;overflow-wrap:anywhere}
 .ev.pos{color:var(--defend)}.ev.neg{color:var(--warn)}
+.ptitle{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;margin:8px 0 2px;font-size:16px}
+.pstatus{margin:10px 0;padding:10px 12px;border-radius:8px;background:#232938;border-left:3px solid var(--plan)}
+.plabel{font-size:12px;color:var(--mute);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
+.pmove{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center;padding:4px 0}
+.pmove b{font-size:17px;min-width:3.2em}.pnote{flex:1 1 12em;min-width:0;font-size:13px}
+.pmove button{background:#5a4a1e;color:#ffe7a8}
+.pfit{font-size:13px;padding:4px 9px;margin:2px 0}
+.pplan ul{margin:6px 0 0;padding-left:18px}.pplan li{margin:3px 0;font-size:14px}
+#playstyle{max-width:100%}
+.modes{display:flex;gap:4px;margin:0 0 10px;padding:3px;background:#1b202b;border-radius:10px}
+.modes button{flex:1;padding:7px 4px;font-size:14px;background:none}
+.modes button.on{background:#566190;font-weight:600}
+.speedhide{display:none!important}
+#speed{margin-top:10px;padding:12px 14px;border-radius:10px;background:#1b202b;border:1px solid #3a4258}
+.slabel{font-size:12px;color:var(--mute);text-transform:uppercase;letter-spacing:.05em}
+.sbig{font-size:34px;font-weight:700;line-height:1.15;margin:2px 0 4px;overflow-wrap:anywhere}
+.sbig .ssrc{font-size:14px;font-weight:600;color:var(--engine);vertical-align:middle}
+.sbig.them,.them{color:#c9b8ff}
+.sthen{font-size:16px;margin:2px 0}
+.spre{font-size:13px;color:var(--plan);margin-top:4px}
+.sdanger{font-size:14px;color:var(--warn);font-weight:600;margin-top:4px}
+.shint{font-size:12px;color:var(--mute);margin-top:6px}
 .palette{display:flex;flex-wrap:wrap;gap:4px;margin:6px 0}
 .palette button{font-size:24px;line-height:1;padding:4px 9px;min-width:44px}
 .palette .w{color:#fff;text-shadow:0 0 2px #000}.palette .b{color:#111;background:#c9cfdc}
@@ -68,7 +90,9 @@ details summary{cursor:pointer;color:var(--mute)}
   <div class="card">
    <h1>♞ SFLarp</h1>
    <div class="mute" style="font-size:13px;margin-bottom:8px">Every legal move explained, plus Stockfish's best lines. Play both sides' moves to track your game, or set up any position.</div>
+   <div class="modes" id="modes" role="group" aria-label="Game mode"><button type="button" data-mode="analysis">Analysis</button><button type="button" data-mode="blitz">Blitz 3 min</button><button type="button" data-mode="bullet">Bullet 1 min</button></div>
    <div id="boardwrap"><div id="board"></div><svg id="arrows" viewBox="0 0 8 8" aria-hidden="true"></svg></div>
+   <div id="speed" hidden aria-live="polite"></div>
    <div id="status" style="margin-top:8px"></div>
    <form class="row" id="moveform" autocomplete="off"><input id="mvin" placeholder="Type a move: e4, Nf3, exd5, O-O" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go"><button type="submit">Play</button></form>
    <div id="msg" role="status"></div>
@@ -97,6 +121,11 @@ details summary{cursor:pointer;color:var(--mute)}
   <div class="card" id="engine" style="margin-top:12px"></div>
  </section>
  <section style="display:grid;gap:12px;align-content:start">
+  <div class="card" id="plancard">
+   <h2>Playstyle</h2>
+   <label for="playstyle" style="display:flex;gap:8px;flex-wrap:wrap">Opening to follow <select id="playstyle"></select></label>
+   <div id="planbody"></div>
+  </div>
   <div class="card">
    <h2>Settings</h2>
    <div class="row" style="margin-top:0">
@@ -2435,10 +2464,10 @@ class Engine {
     this.running = true;
     this.send(`setoption name MultiPV value ${j.lines}`);
     this.send(`position fen ${j.fen}`);
-    this.send(`go depth ${j.depth}`);
+    this.send(j.movetime ? `go movetime ${j.movetime}` : `go depth ${j.depth}`);
   }
 
-  /** Analyse {fen, depth, lines, onInfo(info), onDone({rejected})}. Replaces any search in progress. */
+  /** Analyse {fen, depth | movetime (ms), lines, onInfo(info), onDone({rejected})}. Replaces any search in progress. */
   analyze(job) {
     this.job = null;           // drop output from the search being replaced
     this.queued = job;
@@ -2543,6 +2572,561 @@ function loadFromEditor(grid, turn, base) {
   return loadPosition(fenFromBoard(grid, turn, { allowed: base ? rights : 'KQkq', full }));
 }
 
+// Playstyles: opening repertoires the user can choose to follow. Each has book lines (main line plus the
+// replies an opponent is likely to try), a short note for each of "your" moves and a middlegame plan.
+// Book lookups are by position, so transpositions are recognised.
+
+
+const OPENINGS = [
+  {
+    id: 'queens-gambit', name: "Queen's Gambit", side: 'w', style: 'Classical',
+    summary: 'Play d4 and c4, offering a wing pawn so Black gives up the centre.',
+    plan: [
+      'Control the centre squares e4 and d5 with pawns and knights.',
+      'Develop in this order: Nc3, Nf3, Bg5 (or Bf4), e3, Bd3, castle.',
+      'If Black takes on c4, play e3 and Bxc4 to win the pawn back with a developing move.',
+      'Middlegame: the minority attack (b4-b5) against Black\'s c6/d5 pawns, or the e4 push in the centre.',
+    ],
+    lines: [
+      'd4 d5 c4 e6 Nc3 Nf6 Bg5 Be7 e3 O-O Nf3 h6 Bh4 b6 cxd5 Nxd5 Bxe7 Qxe7',
+      'd4 d5 c4 dxc4 Nf3 Nf6 e3 e6 Bxc4 c5 O-O a6',
+      'd4 d5 c4 c6 Nf3 Nf6 Nc3 dxc4 a4 Bf5 e3 e6 Bxc4',
+      'd4 d5 c4 e6 Nc3 c5 cxd5 exd5 Nf3 Nc6 g3',
+      'd4 d5 c4 Nc6 Nf3 Bg4 cxd5 Bxf3 gxf3 Qxd5 e3',
+      'd4 Nf6 c4 e6 Nf3 d5 Nc3 Be7 Bg5 O-O e3',
+      'd4 Nf6 c4 e6 Nf3 b6 g3 Bb7 Bg2 Be7 O-O O-O Nc3',
+      'd4 Nf6 c4 g6 Nc3 Bg7 e4 d6 Nf3 O-O Be2 e5 O-O',
+      'd4 Nf6 c4 c5 d5 e6 Nc3 exd5 cxd5 d6 e4 g6',
+      'd4 f5 g3 Nf6 Bg2 g6 Nf3 Bg7 O-O O-O c4',
+    ],
+    notes: {
+      d4: 'Claim the centre with the queen\'s pawn.',
+      c4: 'The gambit: attack d5 from the side. If Black takes, you win the pawn back later.',
+      Nc3: 'Adds pressure on d5 and prepares e4.',
+      Nf3: 'Develops and controls e5.',
+      Bg5: 'Pins the f6 knight, the main defender of d5.',
+      Bh4: 'Keeps the pin.',
+      e3: 'Opens a path for the f1 bishop.',
+      Bxc4: 'Wins the gambit pawn back while developing.',
+      cxd5: 'Releases the tension to fix Black\'s pawn structure.',
+      Bxe7: 'Trades off Black\'s good bishop.',
+      a4: 'Stops ...b5, which would hold on to the extra c4 pawn.',
+      g3: 'Fianchetto: the bishop on g2 will aim down the long diagonal.',
+      Bg2: 'Bishop on the long diagonal, pressing on d5 and b7.',
+      'O-O': 'Get the king safe before the middlegame.',
+      gxf3: 'Recapture towards the centre; the open g-file can help later.',
+      e4: 'Take the full centre while Black is still developing.',
+      Be2: 'Simple development; castle next.',
+      d5: 'Gain space and cramp Black\'s pieces.',
+    },
+  },
+  {
+    id: 'london', name: 'London System', side: 'w', style: 'Solid system',
+    summary: 'The same easy setup against almost anything: d4, Bf4, e3, Nf3, c3, Nbd2, Bd3.',
+    plan: [
+      'Build the setup without worrying about Black\'s moves: d4, Bf4, e3, Nf3, c3, Nbd2, Bd3, castle.',
+      'Play Bf4 before e3, otherwise e3 shuts the c1 bishop in.',
+      'If Black plays ...Bd6 to trade bishops, retreat Bg3.',
+      'Middlegame: Ne5 and f4 for a kingside attack, or Qc2 and h4 if Black castles early.',
+    ],
+    lines: [
+      'd4 d5 Bf4 Nf6 e3 e6 Nf3 c5 c3 Nc6 Nbd2 Bd6 Bg3 O-O Bd3',
+      'd4 d5 Bf4 c5 e3 Nc6 c3 Nf6 Nd2 Qb6 Qb3',
+      'd4 Nf6 Bf4 g6 e3 Bg7 Nf3 O-O Be2 d6 h3',
+      'd4 Nf6 Bf4 e6 e3 c5 c3 d5 Nd2 Nc6 Ngf3 Bd6 Bg3 O-O Bd3',
+      'd4 Nf6 Bf4 d5 e3 e6 Nf3 Bd6 Bg3 O-O Bd3 c5 c3',
+      'd4 e6 Bf4 d5 e3 Nf6 Nf3 c5 c3',
+      'd4 f5 Bf4 Nf6 e3 e6 Nf3',
+    ],
+    notes: {
+      d4: 'Claim the centre.',
+      Bf4: 'The London bishop: out before e3 locks it in.',
+      e3: 'Supports d4 and frees the f1 bishop.',
+      Nf3: 'Develops and controls e5.',
+      c3: 'Supports d4 and gives the bishop a retreat to c2 later.',
+      Nbd2: 'Keeps c3 for the pawn and supports e4.',
+      Nd2: 'Keeps c3 for the pawn and supports e4.',
+      Ngf3: 'Develops and controls e5.',
+      Bg3: 'Sidestep ...Bd6 so Black cannot trade on equal terms.',
+      Bd3: 'Aims at Black\'s king side.',
+      Be2: 'A quieter square when Black fianchettoes.',
+      h3: 'Gives the bishop a home on h2 and stops ...Nh5 or ...Bg4.',
+      Qb3: 'Meets ...Qb6 and protects b2.',
+    },
+  },
+  {
+    id: 'italian', name: 'Italian Game', side: 'w', style: 'Classical',
+    summary: '1.e4 e5 2.Nf3 Nc6 3.Bc4: quick development with the bishop aimed at f7.',
+    plan: [
+      'Develop quickly: Nf3, Bc4, c3, d3, castle, Re1.',
+      'Prepare d4 with c3 to build a big centre.',
+      'Reroute the b1 knight: Nbd2-f1-g3 towards the kingside.',
+      'Play a4 if Black tries ...b5 to chase the bishop.',
+    ],
+    lines: [
+      'e4 e5 Nf3 Nc6 Bc4 Bc5 c3 Nf6 d3 d6 O-O O-O Re1 a6 Bb3',
+      'e4 e5 Nf3 Nc6 Bc4 Nf6 d3 Bc5 c3 d6 O-O O-O Re1',
+      'e4 e5 Nf3 Nc6 Bc4 Be7 d4 exd4 Nxd4 Nf6 Nc3 O-O O-O',
+      'e4 e5 Nf3 d6 Bc4 Nf6 d3 Be7 O-O O-O c3',
+      'e4 e5 Nf3 Nf6 Nxe5 d6 Nf3 Nxe4 d4',
+    ],
+    notes: {
+      e4: 'Open lines for the queen and the f1 bishop.',
+      Nf3: 'Develops and attacks e5.',
+      Bc4: 'The Italian bishop, aimed at f7.',
+      c3: 'Prepares d4.',
+      d3: 'Solid: supports e4 and opens the c1 bishop.',
+      d4: 'Strike in the centre while you are ahead in development.',
+      Nxd4: 'Recapture with a centralised knight.',
+      Nc3: 'Develops and covers d5.',
+      'O-O': 'Castle before opening the position.',
+      Re1: 'Supports e4 and prepares Nbd2-f1.',
+      Bb3: 'Keeps the bishop safe from ...b5 and ...Na5.',
+      Nxe5: 'Takes the pawn: Black usually wins it back.',
+    },
+  },
+  {
+    id: 'ruy-lopez', name: 'Ruy Lopez', side: 'w', style: 'Classical',
+    summary: '1.e4 e5 2.Nf3 Nc6 3.Bb5: pressure e5 by attacking its defender.',
+    plan: [
+      'Keep the pressure on e5 by targeting the c6 knight.',
+      'Prepare d4 with c3, and play h3 to stop ...Bg4.',
+      'Reroute the b1 knight: Nbd2-f1-g3.',
+      'In the Exchange variation you get the better pawn structure for the endgame.',
+    ],
+    lines: [
+      'e4 e5 Nf3 Nc6 Bb5 a6 Ba4 Nf6 O-O Be7 Re1 b5 Bb3 d6 c3 O-O h3',
+      'e4 e5 Nf3 Nc6 Bb5 a6 Ba4 Nf6 O-O Nxe4 d4 b5 Bb3 d5 dxe5 Be6',
+      'e4 e5 Nf3 Nc6 Bb5 a6 Bxc6 dxc6 O-O f6 d4',
+      'e4 e5 Nf3 Nc6 Bb5 Nf6 O-O Nxe4 d4 Nd6 Bxc6 dxc6 dxe5 Nf5 Qxd8+ Kxd8',
+      'e4 e5 Nf3 Nc6 Bb5 Bc5 c3 Nf6 O-O O-O d4',
+      'e4 e5 Nf3 Nc6 Bb5 d6 d4 Bd7 Nc3 Nf6 O-O',
+    ],
+    notes: {
+      e4: 'Open lines for the queen and the f1 bishop.',
+      Nf3: 'Develops and attacks e5.',
+      Bb5: 'Attacks the knight that defends e5.',
+      Ba4: 'Keep the pin; the bishop can drop back to b3 later.',
+      Bb3: 'Bishop on the a2-g8 diagonal, eyeing f7.',
+      Bxc6: 'The Exchange variation: damages Black\'s pawns.',
+      'O-O': 'Castle; e4 is defended tactically for now.',
+      Re1: 'Protects e4.',
+      c3: 'Prepares d4 and a retreat square for the bishop.',
+      h3: 'Stops ...Bg4 before playing d4.',
+      d4: 'Open the centre while your king is safe.',
+      dxe5: 'Gains space and kicks the knight.',
+      Qxd8: 'Trades queens: Black loses the right to castle.',
+      'Qxd8+': 'Trades queens: Black loses the right to castle.',
+      Nc3: 'Develops and defends e4.',
+    },
+  },
+  {
+    id: 'scholars-mate', name: "Scholar's Mate", side: 'w', style: 'Trap',
+    summary: 'Queen and bishop gang up on f7 for mate in 4. Works on beginners only.',
+    warning: 'Good players punish this: your queen comes out early and gets chased. If Black defends f7, stop attacking and develop normally.',
+    plan: [
+      'Aim the queen (h5 or f3) and the c4 bishop at f7, which only Black\'s king defends.',
+      'If Black defends with ...g6, ...Qe7, ...Qf6 or ...Nf6 in time, drop the attack.',
+      'Then develop normally: Nf3 or Ne2, Nc3, d3, castle.',
+    ],
+    lines: [
+      'e4 e5 Bc4 Nc6 Qh5 Nf6 Qxf7#',
+      'e4 e5 Qh5 Nc6 Bc4 Nf6 Qxf7#',
+      'e4 e5 Bc4 Bc5 Qh5 Nf6 Qxf7#',
+      'e4 e5 Bc4 Nc6 Qh5 g6 Qf3 Nf6 Ne2 Bg7 Nbc3 d6 d3',
+      'e4 e5 Bc4 Bc5 Qh5 g6 Qf3 Nf6 Ne2',
+      'e4 e5 Bc4 Nc6 Qh5 Qe7 Nc3 Nf6 Qh4',
+      'e4 e5 Bc4 Nf6 d3 Bc5 Nf3 d6 O-O',
+    ],
+    notes: {
+      e4: 'Opens the way for the queen and the f1 bishop.',
+      Bc4: 'First attacker on f7.',
+      Qh5: 'Second attacker on f7, and it hits e5 too. Threat: Qxf7#.',
+      'Qxf7#': 'Checkmate.',
+      Qf3: 'Renews the threat on f7 after ...g6 kicked the queen.',
+      Qh4: 'The trap is defended: step back and develop.',
+      Ne2: 'f7 is covered now; develop and castle.',
+      Nbc3: 'Normal development.',
+      Nc3: 'f7 is covered; develop instead of chasing.',
+      d3: 'Solid: supports e4 and opens the c1 bishop.',
+      Nf3: 'Black stopped the trap early: switch to a normal Italian setup.',
+      'O-O': 'Castle and play a normal game.',
+    },
+  },
+  {
+    id: 'fried-liver', name: 'Fried Liver Attack', side: 'w', style: 'Aggressive',
+    summary: 'Italian with 4.Ng5: hit f7 twice and sacrifice a knight if Black allows it.',
+    plan: [
+      'After 3...Nf6 play Ng5 to attack f7 twice.',
+      'If Black recaptures ...Nxd5, sacrifice Nxf7! then Qf3+ and Nc3 to pile onto the pinned knight.',
+      'If Black plays the best reply ...Na5, keep the extra pawn with Bb5+ and Be2.',
+      'Against ...Bc5 the safe answer is Bxf7+ and Bd5.',
+    ],
+    lines: [
+      'e4 e5 Nf3 Nc6 Bc4 Nf6 Ng5 d5 exd5 Nxd5 Nxf7 Kxf7 Qf3+ Ke6 Nc3 Ncb4 a3 Nxc2+ Kd1 Nxa1 Nxd5',
+      'e4 e5 Nf3 Nc6 Bc4 Nf6 Ng5 d5 exd5 Na5 Bb5+ c6 dxc6 bxc6 Be2 h6 Nf3 e4 Ne5',
+      'e4 e5 Nf3 Nc6 Bc4 Nf6 Ng5 Bc5 Bxf7+ Ke7 Bd5',
+      'e4 e5 Nf3 Nc6 Bc4 Bc5 c3 Nf6 d4 exd4 cxd4 Bb4+ Bd2',
+    ],
+    notes: {
+      e4: 'Open lines for the queen and the f1 bishop.',
+      Nf3: 'Develops and attacks e5.',
+      Bc4: 'Aim at f7.',
+      Ng5: 'Second attacker on f7.',
+      exd5: 'Take back and keep the attack on f7.',
+      Nxf7: 'The Fried Liver sacrifice: drag the king out.',
+      'Qf3+': 'Check, and it attacks the pinned knight on d5.',
+      Nc3: 'Third attacker on d5.',
+      a3: 'Kick the b4 knight.',
+      Kd1: 'Forced, but your attack continues.',
+      Nxd5: 'Win the piece back with a strong attack.',
+      'Bb5+': 'Keep the pawn and develop with check.',
+      dxc6: 'Grab another pawn.',
+      Be2: 'Safe square; you are a pawn up.',
+      Nf3: 'Retreat the knight; it was attacked.',
+      Ne5: 'A strong central outpost.',
+      'Bxf7+': 'Take a pawn with check.',
+      Bd5: 'Centralise the bishop; Black\'s king is stuck in the centre.',
+      c3: 'Prepare d4 against ...Bc5.',
+      d4: 'Strike in the centre.',
+      cxd4: 'Big pawn centre.',
+      Bd2: 'Block the check and offer a trade.',
+    },
+  },
+  {
+    id: 'kings-gambit', name: "King's Gambit", side: 'w', style: 'Aggressive',
+    summary: '1.e4 e5 2.f4: sacrifice a pawn to open the f-file and grab the centre.',
+    plan: [
+      'Open the f-file and build a centre with d4.',
+      'Castle kingside quickly and aim the rook and c4 bishop at f7.',
+      'Win the f4 pawn back later, usually with Bxf4.',
+    ],
+    lines: [
+      'e4 e5 f4 exf4 Nf3 g5 h4 g4 Ne5 Nf6 Bc4 d5 exd5 Bd6',
+      'e4 e5 f4 exf4 Nf3 d5 exd5 Nf6 Bb5+ c6 dxc6 bxc6 Bc4',
+      'e4 e5 f4 exf4 Nf3 d6 d4 g5 h4 g4 Ng1',
+      'e4 e5 f4 Bc5 Nf3 d6 c3 Nf6 d4 exd4 cxd4 Bb4+ Bd2',
+      'e4 e5 f4 d5 exd5 e4 d3 Nf6 dxe4 Nxe4 Nf3',
+    ],
+    notes: {
+      e4: 'Open lines for the queen and the f1 bishop.',
+      f4: 'The gambit: offer the f-pawn to deflect e5.',
+      Nf3: 'Develops and stops ...Qh4+.',
+      h4: 'Undermine the g5 pawn that defends f4.',
+      Ne5: 'The Kieseritzky knight: active and central.',
+      Bc4: 'Aims at f7.',
+      exd5: 'Take the central pawn.',
+      'Bb5+': 'Develop with check.',
+      dxc6: 'Grab material.',
+      d4: 'Build the big centre.',
+      Ng1: 'Retreat; the knight comes back out via e2 or c3.',
+      c3: 'Prepares d4 against ...Bc5.',
+      cxd4: 'Big pawn centre.',
+      Bd2: 'Block the check.',
+      d3: 'Challenge the advanced e4 pawn.',
+      dxe4: 'Clear the centre.',
+    },
+  },
+  {
+    id: 'caro-kann', name: 'Caro-Kann Defence', side: 'b', style: 'Solid', answers: 'e4',
+    summary: 'Against 1.e4 play ...c6 and ...d5: a rock-solid centre with no weaknesses.',
+    plan: [
+      'Support ...d5 with ...c6.',
+      'Get the light-squared bishop out (...Bf5 or ...Bg4) before playing ...e6.',
+      'Then ...e6, ...Nd7, ...Ngf6, castle.',
+      'Against the Advance (e5) break with ...c5; your structure is very hard to attack.',
+    ],
+    lines: [
+      'e4 c6 d4 d5 Nc3 dxe4 Nxe4 Bf5 Ng3 Bg6 h4 h6 Nf3 Nd7 h5 Bh7 Bd3 Bxd3 Qxd3 e6',
+      'e4 c6 d4 d5 Nd2 dxe4 Nxe4 Bf5 Ng3 Bg6',
+      'e4 c6 d4 d5 e5 Bf5 Nf3 e6 Be2 c5 O-O Nc6',
+      'e4 c6 d4 d5 exd5 cxd5 Bd3 Nc6 c3 Nf6 Bf4 Bg4 Qb3 Qd7',
+      'e4 c6 d4 d5 exd5 cxd5 c4 Nf6 Nc3 e6 Nf3 Be7',
+      'e4 c6 Nc3 d5 Nf3 Bg4 h3 Bxf3 Qxf3 e6',
+      'e4 c6 d3 d5 Nd2 e5 Ngf3 Bd6 g3 Nf6',
+      'e4 c6 c4 d5 exd5 cxd5 cxd5 Nf6',
+    ],
+    notes: {
+      c6: 'Prepares ...d5 with pawn support.',
+      d5: 'Challenge e4 straight away.',
+      dxe4: 'Release the tension and develop the bishop next.',
+      Bf5: 'The good bishop comes out before ...e6 locks it in.',
+      Bg6: 'Keeps the bishop; it can drop back to h7.',
+      h6: 'Gives the bishop h7 if White pushes h5.',
+      Nd7: 'Covers e5 and prepares ...Ngf6.',
+      Bh7: 'Safe square for the bishop.',
+      Bxd3: 'Trade off White\'s attacking bishop.',
+      e6: 'Now ...e6: the bishop is already outside the pawn chain.',
+      c5: 'Hit the base of White\'s pawn chain.',
+      Nc6: 'Develops and adds pressure on d4.',
+      cxd5: 'Symmetrical structure; develop actively.',
+      Nf6: 'Develops and defends d5.',
+      Bg4: 'Pins the f3 knight or annoys the queen.',
+      Qd7: 'Protects b7 and connects the rooks.',
+      Be7: 'Develop and castle.',
+      Bxf3: 'Give the bishop for the knight to keep ...e6 and ...d5 solid.',
+      e5: 'Against a slow setup take the centre with ...e5.',
+      Bd6: 'Develops and protects e5.',
+    },
+  },
+  {
+    id: 'sicilian-dragon', name: 'Sicilian Dragon', side: 'b', style: 'Aggressive', answers: 'e4',
+    summary: 'Against 1.e4 play ...c5 and fianchetto the bishop on g7 for sharp counterplay.',
+    plan: [
+      'Trade the c-pawn for White\'s d-pawn to get a half-open c-file.',
+      'Fianchetto: ...g6 and ...Bg7 on the long diagonal.',
+      'Develop ...Nc6, ...Bd7, ...Rc8 and attack on the queenside (...Ne5-c4, ...b5).',
+      'Watch for White\'s h4-h5 attack against your king.',
+    ],
+    lines: [
+      'e4 c5 Nf3 d6 d4 cxd4 Nxd4 Nf6 Nc3 g6 Be3 Bg7 f3 O-O Qd2 Nc6 Bc4 Bd7 O-O-O Rc8 Bb3',
+      'e4 c5 Nf3 d6 d4 cxd4 Nxd4 Nf6 Nc3 g6 Be2 Bg7 O-O O-O Be3 Nc6',
+      'e4 c5 Nf3 d6 Bb5+ Bd7 Bxd7+ Qxd7 O-O Nc6 c3 Nf6',
+      'e4 c5 c3 Nf6 e5 Nd5 d4 cxd4 Nf3 Nc6 cxd4 d6',
+      'e4 c5 d4 cxd4 c3 Nf6 e5 Nd5 cxd4 d6',
+      'e4 c5 Nc3 Nc6 g3 g6 Bg2 Bg7 d3 d6 f4 e6',
+    ],
+    notes: {
+      c5: 'The Sicilian: fight for d4 from the side.',
+      d6: 'Controls e5 and opens the c8 bishop.',
+      cxd4: 'Swap a wing pawn for a centre pawn.',
+      Nf6: 'Develops and attacks e4.',
+      g6: 'The Dragon fianchetto.',
+      Bg7: 'The Dragon bishop on the long diagonal.',
+      'O-O': 'Castle before the fight starts.',
+      Nc6: 'Develops and hits d4.',
+      Bd7: 'Connects the rooks and prepares ...Rc8.',
+      Rc8: 'Rook on the half-open c-file.',
+      Qxd7: 'Recapture and connect the rooks.',
+      Nd5: 'Centralised knight after White\'s e5.',
+      d5: 'Strike in the centre.',
+      e6: 'Controls d5 and f5.',
+    },
+  },
+  {
+    id: 'french', name: 'French Defence', side: 'b', style: 'Solid', answers: 'e4',
+    summary: 'Against 1.e4 play ...e6 and ...d5: a strong pawn chain and counterattacks with ...c5 and ...f6.',
+    plan: [
+      'Build the chain ...e6 and ...d5.',
+      'When White plays e5, hit the chain with ...c5, and later ...f6.',
+      'Your light-squared bishop is the problem piece: trade it or reroute it (...b6 and ...Ba6).',
+      'Your play is on the queenside; White\'s is on the kingside.',
+    ],
+    lines: [
+      'e4 e6 d4 d5 Nc3 Nf6 Bg5 Be7 e5 Nfd7 Bxe7 Qxe7 f4 O-O Nf3 c5',
+      'e4 e6 d4 d5 Nc3 Bb4 e5 c5 a3 Bxc3+ bxc3 Ne7',
+      'e4 e6 d4 d5 e5 c5 c3 Nc6 Nf3 Qb6 a3 c4',
+      'e4 e6 d4 d5 exd5 exd5 Nf3 Nf6 Bd3 Bd6 O-O O-O',
+      'e4 e6 d4 d5 Nd2 c5 exd5 exd5 Ngf3 Nc6',
+      'e4 e6 d3 d5 Nd2 Nf6 Ngf3 c5 g3 Nc6 Bg2 Be7 O-O O-O',
+      'e4 e6 Nf3 d5 Nc3 Nf6 e5 Nfd7 d4 c5',
+    ],
+    notes: {
+      e6: 'Prepares ...d5 with support.',
+      d5: 'Challenge e4.',
+      Nf6: 'Develops and attacks e4.',
+      Be7: 'Unpins the knight.',
+      Nfd7: 'Retreat; the knight heads for b6 or supports ...c5.',
+      Qxe7: 'Recapture and connect the rooks.',
+      'O-O': 'Castle before opening the position.',
+      c5: 'The key French break against d4.',
+      Bb4: 'The Winawer: pin the c3 knight.',
+      'Bxc3+': 'Double White\'s pawns.',
+      Ne7: 'Develops towards f5 and keeps f7 free.',
+      Nc6: 'Adds pressure on d4.',
+      Qb6: 'Hits d4 and b2.',
+      c4: 'Gain space on the queenside.',
+      exd5: 'Symmetrical; develop actively.',
+      Bd6: 'Active bishop.',
+    },
+  },
+  {
+    id: 'scandinavian', name: 'Scandinavian Defence', side: 'b', style: 'Direct', answers: 'e4',
+    summary: 'Against 1.e4 play 1...d5 at once and recapture with the queen.',
+    plan: [
+      'Challenge e4 immediately with ...d5.',
+      'After ...Qxd5 and Nc3, put the queen on a5 where it is safe and active.',
+      'Develop ...Nf6, ...c6, ...Bf5 or ...Bg4, ...e6, castle.',
+      'Simple, solid positions with few early tactics.',
+    ],
+    lines: [
+      'e4 d5 exd5 Qxd5 Nc3 Qa5 d4 Nf6 Nf3 c6 Bc4 Bf5 Bd2 e6',
+      'e4 d5 exd5 Qxd5 Nf3 Bg4 Be2 Nc6 O-O O-O-O',
+      'e4 d5 exd5 Qxd5 d4 Nf6 Nf3 Bg4 Be2 e6 O-O Nc6',
+      'e4 d5 e5 Bf5 d4 e6 Nf3 c5',
+      'e4 d5 Nc3 d4 Nce2 e5 Ng3 Be6',
+    ],
+    notes: {
+      d5: 'Hit e4 straight away.',
+      Qxd5: 'Take back with the queen.',
+      Qa5: 'Safe and active: pins along the a5-e1 diagonal.',
+      Nf6: 'Develops and controls e4.',
+      c6: 'Gives the queen a retreat and controls d5 and b5.',
+      Bf5: 'Develop the bishop before ...e6.',
+      e6: 'Solid pawn chain; the bishop is already out.',
+      Bg4: 'Pin the f3 knight.',
+      Nc6: 'Develops and hits d4.',
+      'O-O-O': 'Castle long: the rook lands on the open d-file.',
+      d4: 'Gain space and kick the knight.',
+      e5: 'Take the centre.',
+      Be6: 'Develops and covers d5.',
+      c5: 'Hit the base of the chain.',
+    },
+  },
+  {
+    id: 'kings-indian', name: "King's Indian Defence", side: 'b', style: 'Aggressive', answers: 'd4',
+    summary: 'Against 1.d4 let White build a big centre, then attack it with ...e5 and a kingside pawn storm.',
+    plan: [
+      'Fianchetto (...g6, ...Bg7) and castle quickly.',
+      'Strike the centre with ...e5 (or ...c5).',
+      'If White closes the centre with d5, attack the king: ...Nh5 or ...Nd7, then ...f5-f4 and ...g5.',
+    ],
+    lines: [
+      'd4 Nf6 c4 g6 Nc3 Bg7 e4 d6 Nf3 O-O Be2 e5 O-O Nc6 d5 Ne7 Ne1 Nd7',
+      'd4 Nf6 c4 g6 Nc3 Bg7 e4 d6 f3 O-O Be3 e5 d5 Nh5',
+      'd4 Nf6 Nf3 g6 g3 Bg7 Bg2 O-O O-O d6 c4 Nbd7 Nc3 e5',
+      'd4 Nf6 Bf4 g6 e3 Bg7 Nf3 O-O Be2 d6 h3 Nbd7',
+      'd4 Nf6 c4 g6 Nf3 Bg7 g3 O-O Bg2 d6 O-O Nc6 Nc3 a6',
+      'd4 Nf6 Bg5 g6 Bxf6 exf6 e3 Bg7',
+    ],
+    notes: {
+      Nf6: 'Flexible: controls e4 and d5.',
+      g6: 'Prepares the fianchetto.',
+      Bg7: 'The King\'s Indian bishop on the long diagonal.',
+      d6: 'Prepares ...e5.',
+      'O-O': 'Castle before the centre opens.',
+      e5: 'The key break: hit d4.',
+      Nc6: 'Adds pressure on d4.',
+      Ne7: 'Reroutes towards the kingside for ...f5.',
+      Nd7: 'Clears the way for ...f5.',
+      Nh5: 'Prepares ...f5 and eyes f4.',
+      Nbd7: 'Supports ...e5.',
+      a6: 'Prepares ...Rb8 and ...b5.',
+      exf6: 'Recapture towards the centre; the bishop on g7 is strong.',
+    },
+  },
+  {
+    id: 'qgd', name: "Queen's Gambit Declined", side: 'b', style: 'Solid', answers: 'd4',
+    summary: 'Against 1.d4 hold the centre with ...d5 and ...e6, then free your game with ...c5.',
+    plan: [
+      'Hold d5 with ...e6 rather than taking on c4.',
+      'Develop ...Nf6, ...Be7, castle, ...Nbd7.',
+      'Free your position with ...c5 or ...dxc4 followed by ...c5 or ...e5.',
+      'The Tartakower setup (...h6, ...b6, ...Bb7) gets the problem bishop out.',
+    ],
+    lines: [
+      'd4 d5 c4 e6 Nc3 Nf6 Bg5 Be7 e3 O-O Nf3 h6 Bh4 b6 cxd5 Nxd5 Bxe7 Qxe7',
+      'd4 d5 c4 e6 Nc3 Nf6 Nf3 Be7 Bg5 O-O e3 h6 Bh4',
+      'd4 d5 c4 e6 Nf3 Nf6 Nc3 Be7 Bf4 O-O e3 c5',
+      'd4 d5 c4 e6 Nc3 Nf6 cxd5 exd5 Bg5 Be7 e3 O-O Bd3 Nbd7',
+      'd4 d5 Nf3 Nf6 c4 e6 Nc3 Be7',
+      'd4 d5 Bf4 Nf6 e3 e6 Nf3 c5 c3 Nc6 Nbd2 Bd6',
+    ],
+    notes: {
+      d5: 'Claim your share of the centre.',
+      e6: 'Declines the gambit and keeps d5 solid.',
+      Nf6: 'Develops and defends d5.',
+      Be7: 'Unpins and prepares castling.',
+      'O-O': 'Castle early.',
+      h6: 'Ask the bishop what it wants.',
+      b6: 'Tartakower: the bishop goes to b7.',
+      Nxd5: 'Recapture and offer trades to free your position.',
+      Qxe7: 'Recapture and connect the rooks.',
+      c5: 'The freeing break.',
+      exd5: 'Recapture with the pawn for a solid centre.',
+      Nbd7: 'Supports ...c5 or ...e5 later.',
+      Nc6: 'Adds pressure on d4.',
+      Bd6: 'Offers to trade White\'s active bishop.',
+    },
+  },
+  {
+    id: 'qga', name: "Queen's Gambit Accepted", side: 'b', style: 'Classical', answers: 'd4',
+    summary: 'Against 1.d4 d5 2.c4 take the pawn, then give it back for quick, free development.',
+    plan: [
+      'Take on c4 with ...dxc4. Don\'t try to hold the pawn: White gets it back.',
+      'Develop fast while White spends a move recapturing: ...Nf6, ...e6, ...c5, ...a6.',
+      'Strike the centre with ...c5 (or ...e5) and aim for ...b5 and ...Bb7.',
+    ],
+    lines: [
+      'd4 d5 c4 dxc4 Nf3 Nf6 e3 e6 Bxc4 c5 O-O a6 a4 Nc6',
+      'd4 d5 c4 dxc4 e4 e5 Nf3 exd4 Bxc4 Bb4+ Nbd2 Nc6',
+      'd4 d5 c4 dxc4 e3 e5 Bxc4 exd4 exd4 Nf6 Nf3 Bd6',
+      'd4 d5 c4 dxc4 Nc3 e5 d5 Nf6 e4 Bc5',
+      'd4 d5 Nf3 Nf6 c4 dxc4 e3 e6 Bxc4 c5 O-O a6',
+      'd4 d5 Bf4 Nf6 e3 c5 c3 Nc6 Nd2 e6 Ngf3 Bd6',
+    ],
+    notes: {
+      d5: 'Claim your share of the centre.',
+      dxc4: 'Accept the gambit; you will give the pawn back for free development.',
+      Nf6: 'Develops and controls e4.',
+      e6: 'Opens the f8 bishop.',
+      c5: 'Hit d4 straight away.',
+      a6: 'Prepares ...b5 and stops Bb5.',
+      Nc6: 'Develops and adds pressure on d4.',
+      e5: 'Strike back in the centre.',
+      exd4: 'Win the centre pawn back.',
+      'Bb4+': 'Develop with check.',
+      Bd6: 'Active bishop aimed at h2.',
+      Bc5: 'Active bishop on the a7-g1 diagonal.',
+    },
+  },
+];
+
+const posKey = (fen) => fen.split(' ').slice(0, 4).join(' ');
+
+/** Map position -> book moves (an empty array marks the end of a line). Throws on an illegal line. */
+function buildBook(op) {
+  const book = new Map();
+  for (const line of op.lines) {
+    const c = new Chess();
+    for (const san of line.split(' ')) {
+      const k = posKey(c.fen());
+      const m = c.move(san);
+      const list = book.get(k) || [];
+      if (!list.some((x) => x.san === m.san)) list.push({ san: m.san, from: m.from, to: m.to, promotion: m.promotion || null });
+      book.set(k, list);
+    }
+    const end = posKey(c.fen());
+    if (!book.has(end)) book.set(end, []);
+  }
+  return book;
+}
+
+const books = new Map();
+const bookFor = (op) => books.get(op.id) || books.set(op.id, buildBook(op)).get(op.id);
+const openingById = (id) => OPENINGS.find((o) => o.id === id) || null;
+const noteFor = (op, san) => op.notes[san] || op.notes[san.replace(/[+#]$/, '')] || '';
+
+/**
+ * Where the game stands relative to an opening.
+ * state: 'your-move' | 'their-move' (with `next` book moves), 'complete', 'off-book' (with `deviation`),
+ *        or 'not-from-start' when the position never came from the opening.
+ */
+function planStatus(chess, op) {
+  const book = bookFor(op);
+  const here = book.get(posKey(chess.fen()));
+  if (here && here.length) return { state: chess.turn() === op.side ? 'your-move' : 'their-move', next: here };
+  if (here) return { state: 'complete' };
+  const hist = chess.history({ verbose: true });
+  for (let i = hist.length - 1; i >= 0; i--) {
+    const expected = book.get(posKey(hist[i].before));
+    if (!expected) continue;
+    if (!expected.length) return { state: 'complete' };
+    return {
+      state: 'off-book',
+      deviation: { moveNo: Math.floor(i / 2) + 1, black: hist[i].color === 'b', san: hist[i].san, byYou: hist[i].color === op.side, expected: expected.map((x) => x.san) },
+    };
+  }
+  return { state: 'not-from-start' };
+}
+
+/** Other playstyles for the same side whose book contains this position (with moves still to come). */
+function fittingOpenings(chess, side, exceptId) {
+  const k = posKey(chess.fen());
+  return OPENINGS.filter((o) => o.side === side && o.id !== exceptId && (bookFor(o).get(k) || []).length);
+}
+
+
 
 
 
@@ -2554,6 +3138,12 @@ const PIECE_NAME = { k: 'King', q: 'Queen', r: 'Rooks', b: 'Bishops', n: 'Knight
 const THEMES = [['mate', 'Checkmate'], ['check', 'Checks'], ['capture', 'Captures'], ['threat', 'Threats'], ['fork', 'Forks'], ['discover', 'Discoveries'], ['defend', 'Defensive'], ['develop', 'Development'], ['castle', 'Castling'], ['promo', 'Promotions']];
 const PRIORITY = ['mate', 'check', 'fork', 'capture', 'threat', 'discover', 'defend', 'promo', 'castle', 'develop', 'center'];
 const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+// fast game modes: the engine thinks for a fixed time, and a big move card replaces the long panels
+const MODES = {
+  analysis: { label: 'Analysis' },
+  blitz: { label: 'Blitz 3 min', movetime: 1000, lines: 2, ahead: 4, dangers: 2 },
+  bullet: { label: 'Bullet 1 min', movetime: 350, lines: 1, ahead: 2, dangers: 1 },
+};
 
 let chess = new Chess();
 let flipped = false, selected = null, highlight = null, info = null, filter = null;
@@ -2562,14 +3152,17 @@ let editing = false, editBoard = null, editTool = 'hand', handFrom = null, editB
 // engine
 let engine = null, engineStarting = null, engineToken = 0, engineTimer = 0;
 let eng = { status: 'idle', lines: [], depth: 0, fen: '', turn: 'w', msg: '' };
+// playstyle (opening plan); null when none is chosen
+let plan = null;
 
-const settings = { level: '2', warn: true, engine: true, lines: '3', depth: '16' };
+const settings = { level: '2', warn: true, engine: true, lines: '3', depth: '16', playstyle: '', mode: 'analysis' };
 try { Object.assign(settings, JSON.parse(localStorage.getItem('cc-settings') || '{}')); } catch {}
 const save = () => { try { localStorage.setItem('cc-settings', JSON.stringify(settings)); } catch {} };
 const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
 const kindOf = (m) => PRIORITY.find((k) => m.tags.some((t) => t.kind === k));
 const squareIndex = (n) => (8 - Number(n[1])) * 8 + 'abcdefgh'.indexOf(n[0]);
 const say = (t) => { $('msg').textContent = t; };
+const speedMode = () => (settings.mode !== 'analysis' && MODES[settings.mode]) || null;
 
 /* ---------- engine ---------- */
 const engineMove = (line) => ({ from: line.pv[0].slice(0, 2), to: line.pv[0].slice(2, 4) });
@@ -2584,11 +3177,11 @@ function runEngine() {
   if (editing || !settings.engine || info.gameOver) {
     engine?.stop();
     eng = { status: settings.engine ? 'idle' : 'off', lines: [], depth: 0, fen: '', turn: chess.turn(), msg: '' };
-    renderEngine(); drawArrows(); renderMoves();
+    renderEngine(); drawArrows(); renderMoves(); renderSpeed();
     return;
   }
   eng = { status: eng.status === 'error' ? 'error' : 'thinking', lines: [], depth: 0, fen: chess.fen(), turn: chess.turn(), msg: eng.msg };
-  renderEngine(); drawArrows(); renderMoves();
+  renderEngine(); drawArrows(); renderMoves(); renderSpeed();
   if (eng.status === 'error') return;
   engineTimer = setTimeout(async () => {
     try {
@@ -2605,15 +3198,17 @@ function runEngine() {
     if (token !== engineToken) return;
     const fen = chess.fen();
     let topKey = '';
+    const speed = speedMode();
     engine.analyze({
       fen,
       depth: Number(settings.depth),
-      lines: Math.max(1, Math.min(Number(settings.lines), info.moves.length)),
+      movetime: speed?.movetime,
+      lines: Math.max(1, Math.min(speed ? speed.lines : Number(settings.lines), info.moves.length)),
       onInfo(i) {
         if (token !== engineToken) return;
         eng.lines[i.multipv - 1] = { depth: i.depth, score: i.score, pv: i.pv };
         eng.depth = Math.max(eng.depth, i.depth);
-        renderEngine();
+        renderEngine(); renderSpeed();
         const key = eng.lines.map((l) => l && l.pv[0]).join(',');
         if (key !== topKey) { topKey = key; drawArrows(); renderMoves(); }
       },
@@ -2621,20 +3216,20 @@ function runEngine() {
         if (token !== engineToken) return;
         eng.status = 'done';
         if (rejected) eng.lines = [];
-        renderEngine(); drawArrows(); renderMoves();
+        renderEngine(); drawArrows(); renderMoves(); renderSpeed();
       },
     });
-  }, 150);
+  }, speedMode() ? 20 : 150);
 }
 
 function renderEngine() {
   const el = $('engine');
-  if (editing) { el.hidden = true; return; }
+  if (editing || settings.mode === 'bullet') { el.hidden = true; return; }
   el.hidden = false;
   if (!settings.engine) { el.innerHTML = '<h2>Engine</h2><div class="mute">Engine suggestions are off. Turn them on in Settings to see Stockfish\'s best lines.</div>'; return; }
   if (info.gameOver) { el.innerHTML = '<h2>Engine</h2><div class="mute">Game over.</div>'; return; }
   if (eng.status === 'error') { el.innerHTML = `<h2>Engine</h2><div class="bad">${esc(eng.msg)}</div>`; return; }
-  const state = eng.status === 'done' ? `depth ${eng.depth}` : eng.lines.length ? `thinking… depth ${eng.depth}/${settings.depth}` : 'starting engine…';
+  const state = eng.status === 'done' ? `depth ${eng.depth}` : eng.lines.length ? `thinking… depth ${eng.depth}${speedMode() ? '' : `/${settings.depth}`}` : 'starting engine…';
   const rows = eng.lines.map((l, r) => {
     if (!l) return '';
     const san = pvToSan(eng.fen, l.pv, 8);
@@ -2652,34 +3247,178 @@ function renderEngine() {
 
 function drawArrows() {
   const svg = $('arrows');
-  if (editing || !settings.engine || info.gameOver) { svg.innerHTML = ''; return; }
+  if (editing || info.gameOver) { svg.innerHTML = ''; return; }
   const pt = (name) => {
     const i = squareIndex(name), r = Math.floor(i / 8), f = i % 8;
     return [(flipped ? 7 - f : f) + 0.5, (flipped ? 7 - r : r) + 0.5];
   };
-  let out = '';
-  eng.lines.forEach((l, k) => {
-    if (!l) return;
-    const m = engineMove(l);
-    const [x1, y1] = pt(m.from), [x2, y2] = pt(m.to);
+  const arrow = (from, to, color, w, op) => {
+    const [x1, y1] = pt(from), [x2, y2] = pt(to);
     const dx = x2 - x1, dy = y2 - y1, len = Math.hypot(dx, dy) || 1, ux = dx / len, uy = dy / len;
-    const head = 0.34, w = k === 0 ? 0.15 : 0.1, color = k === 0 ? '#5ac98f' : '#5aa9e6', op = k === 0 ? 0.9 : 0.65;
+    const head = 0.34, half = Math.max(0.17, w * 1.1);
     const bx = x2 - ux * head, by = y2 - uy * head, px = -uy, py = ux;
-    out += `<g opacity="${op}" fill="${color}" stroke="${color}"><line x1="${x1 + ux * 0.2}" y1="${y1 + uy * 0.2}" x2="${bx}" y2="${by}" stroke-width="${w}" stroke-linecap="round"/>` +
-      `<polygon points="${x2},${y2} ${bx + px * 0.17},${by + py * 0.17} ${bx - px * 0.17},${by - py * 0.17}" stroke="none"/></g>`;
-  });
+    return `<g opacity="${op}" fill="${color}" stroke="${color}"><line x1="${x1 + ux * 0.2}" y1="${y1 + uy * 0.2}" x2="${bx}" y2="${by}" stroke-width="${w}" stroke-linecap="round"/>` +
+      `<polygon points="${x2},${y2} ${bx + px * half},${by + py * half} ${bx - px * half},${by - py * half}" stroke="none"/></g>`;
+  };
+  let out = '';
+  // the plan's book move sits underneath, slightly wider, so it still shows when the engine agrees
+  if (plan?.state === 'your-move') for (const m of plan.next) out += arrow(m.from, m.to, '#f0b429', 0.22, 0.9);
+  if (settings.engine) {
+    // in a fast mode on their turn the engine's line is their expected move: show it in their colour
+    const theirs = speedMode() && chess.turn() !== mySide();
+    eng.lines.forEach((l, k) => {
+      if (!l) return;
+      const m = engineMove(l);
+      out += arrow(m.from, m.to, k === 0 ? (theirs ? '#c9b8ff' : '#5ac98f') : '#5aa9e6', k === 0 ? 0.15 : 0.1, k === 0 ? 0.9 : 0.65);
+    });
+  }
   svg.innerHTML = out;
+}
+
+/* ---------- fast game modes ---------- */
+// the side you are playing: the playstyle's side, otherwise the side at the bottom of the board
+const mySide = () => currentOpening()?.side || (flipped ? 'b' : 'w');
+
+/** The move to suggest when it is your turn: the book move while in the opening, else the engine's first choice. */
+function suggestion() {
+  if (plan?.state === 'your-move') return { san: plan.next[0].san, source: 'book' };
+  const l = settings.engine && eng.lines[0];
+  if (!l || eng.fen !== chess.fen()) return null;
+  const san = pvToSan(eng.fen, l.pv, 1)[0];
+  return san ? { san, source: 'engine', score: fmtScore(l.score, eng.turn), pv: l.pv } : null;
+}
+
+function renderSpeed() {
+  const el = $('speed');
+  const speed = speedMode();
+  if (!speed || editing || !info) { el.hidden = true; return; }
+  el.hidden = false;
+  if (info.gameOver) { el.innerHTML = `<div class="slabel">Game over</div><div class="sbig">${info.gameOver === 'checkmate' ? 'Checkmate' : 'Draw'}</div>`; return; }
+  const yours = chess.turn() === mySide();
+  const l = settings.engine && eng.fen === chess.fen() ? eng.lines[0] : null;
+  const pv = l ? pvToSan(eng.fen, l.pv, speed.ahead + 1) : [];
+  // dangers, from your point of view whoever is to move
+  const p = info.position, dangers = [];
+  if (yours) {
+    if (p.inCheck) dangers.push('You are in check');
+    if (p.theyThreatenMate) dangers.push('They threaten mate in 1');
+    for (const x of [...p.yourPiecesAttacked].sort((a, b) => b.loss - a.loss)) dangers.push(`Your ${x.piece} on ${x.sq} is hanging`);
+  } else {
+    for (const x of [...p.theirPiecesAttackable].sort((a, b) => b.loss - a.loss)) dangers.push(`They can win your ${x.piece} on ${x.sq}`);
+  }
+  const chain = (moves, firstIsYours) => moves.map((m, i) => ((i % 2 === 0) === firstIsYours ? `<b>${esc(m)}</b>` : `<span class="them">${esc(m)}</span>`)).join(' <span class="mute">&rarr;</span> ');
+  let html = '';
+  if (yours) {
+    const s = suggestion();
+    html += `<div class="slabel">Your move</div>`;
+    if (!s) html += `<div class="sbig mute">${settings.engine ? 'thinking…' : 'Engine off'}</div>`;
+    else {
+      const engineAgrees = s.source === 'book' && pv[0] === s.san;
+      html += `<div class="sbig">${esc(s.san)} <span class="ssrc">${s.source === 'book' ? `📖 book${pv[0] && !engineAgrees ? ` &middot; engine: ${esc(pv[0])}` : ''}` : `★ ${esc(s.score)}`}</span></div>`;
+      // moves ahead: only from the engine line that starts with the suggested move
+      if (pv[0] === s.san && pv.length > 1) {
+        html += `<div class="sthen">Then: ${chain(pv.slice(1), false)}</div>`;
+        const after = new Chess(chess.fen());
+        try {
+          after.move(s.san);
+          const replies = after.moves();
+          if (replies.length === 1) html += `<div class="spre">Their reply is forced (${esc(replies[0])}): premove ${esc(pv[2] || '')} is safe.</div>`;
+        } catch { /* suggestion no longer legal */ }
+      }
+    }
+  } else {
+    html += `<div class="slabel">Their move &middot; type it in</div>`;
+    html += pv[0] ? `<div class="sbig them">Expect ${esc(pv[0])}</div>${pv.length > 1 ? `<div class="sthen">Your answer: ${chain(pv.slice(1), true)}</div>` : ''}`
+      : `<div class="sbig mute">${settings.engine ? 'thinking…' : 'Engine off'}</div>`;
+  }
+  if (dangers.length) html += dangers.slice(0, speed.dangers).map((d) => `<div class="sdanger">&#9888; ${esc(d)}</div>`).join('');
+  html += `<div class="shint">You are ${sideName(mySide())}${currentOpening() ? '' : ' (Flip to switch)'}. Enter on an empty move box plays your suggested move.</div>`;
+  el.innerHTML = html;
+}
+
+function applyMode() {
+  const speed = speedMode();
+  document.querySelectorAll('#modes button').forEach((b) => b.classList.toggle('on', b.dataset.mode === settings.mode));
+  // fast modes keep the big move card and hide the long reading panels
+  $('aware').classList.toggle('speedhide', !!speed);
+  $('moves').classList.toggle('speedhide', !!speed);
+}
+
+function chooseMode(mode) {
+  settings.mode = MODES[mode] ? mode : 'analysis'; save();
+  applyMode(); refresh();
+}
+
+/* ---------- playstyle ---------- */
+const currentOpening = () => openingById(settings.playstyle);
+const planPick = (m) => (plan?.state === 'your-move' ? plan.next.findIndex((x) => x.san === m.san) : -1);
+const sideName = (c) => (c === 'w' ? 'White' : 'Black');
+
+function buildPlaystylePicker() {
+  const opts = (side) => OPENINGS.filter((o) => o.side === side)
+    .map((o) => `<option value="${o.id}">${esc(o.name)}${o.answers ? ` (vs 1.${o.answers})` : ''} &middot; ${esc(o.style)}</option>`).join('');
+  $('playstyle').innerHTML = `<option value="">None &mdash; just analyse</option><optgroup label="Play as White">${opts('w')}</optgroup><optgroup label="Play as Black">${opts('b')}</optgroup>`;
+  $('playstyle').value = currentOpening() ? settings.playstyle : '';
+}
+
+function choosePlaystyle(id) {
+  settings.playstyle = id; save();
+  $('playstyle').value = id;
+  const op = currentOpening();
+  if (op) flipped = op.side === 'b'; // look at the board from the side you are playing
+  refresh();
+}
+
+function renderPlan() {
+  const el = $('planbody');
+  const op = currentOpening();
+  if (!op) {
+    el.innerHTML = '<div class="mute" style="font-size:13px;margin-top:6px">Pick an opening and SFLarp shows its moves, what each one is for, and the plan afterwards. Choose None to use SFLarp as it is.</div>';
+    return;
+  }
+  const move = (d) => `${d.moveNo}${d.black ? '...' : '.'}${esc(d.san)}`;
+  let status = '';
+  if (info.gameOver) status = '<div class="mute">Game over.</div>';
+  else if (!plan) status = '';
+  else if (plan.state === 'your-move') {
+    status = `<div class="plabel">Your book move${plan.next.length > 1 ? 's' : ''}</div>` + plan.next.map((m) => `
+      <div class="pmove"><b>${esc(m.san)}</b><span class="pnote">${esc(noteFor(op, m.san))}</span><button type="button" data-play="${esc(m.san)}">Play ${esc(m.san)}</button></div>`).join('');
+  } else if (plan.state === 'their-move') {
+    status = `<div class="plabel">Their move</div><div>The book expects ${plan.next.map((m) => `<b>${esc(m.san)}</b>`).join(', ')}. Enter their move when they play it.</div>`;
+  } else if (plan.state === 'complete') {
+    status = `<div class="good">&#10003; You've played the whole ${esc(op.name)} line. Follow the game plan below; the engine and the move notes still work as normal.</div>`;
+  } else if (plan.state === 'off-book') {
+    const d = plan.deviation;
+    status = d.byYou
+      ? `<div><b class="bad">You left the ${esc(op.name)}</b> with ${move(d)} (the book move was ${d.expected.map(esc).join(' or ')}). Undo to get back on track, or carry on with the plan below.</div>`
+      : `<div><b>They left the book</b> with ${move(d)} (the book expected ${d.expected.map(esc).join(' or ')}). You're on your own now: use the game plan below and the engine.</div>`;
+  } else {
+    status = '<div class="mute">This position wasn\'t reached from the start of a game, so the opening book can\'t follow it. Press New game to play the opening from move 1.</div>';
+  }
+  const fits = plan && (plan.state === 'off-book' || plan.state === 'not-from-start') && !info.gameOver ? fittingOpenings(chess, op.side, op.id) : [];
+  el.innerHTML = `
+    <div class="ptitle"><b>${esc(op.name)}</b><span class="chip k-plan">You play ${sideName(op.side)}</span><span class="chip" style="--c:#8a93a8">${esc(op.style)}</span></div>
+    <div class="mute" style="font-size:13px">${esc(op.summary)}</div>
+    ${op.warning ? `<div class="bad" style="font-size:13px;margin-top:4px">&#9888; ${esc(op.warning)}</div>` : ''}
+    <div class="pstatus">${status}</div>
+    ${fits.length ? `<div style="font-size:13px">Playstyles that fit this position: ${fits.map((o) => `<button type="button" class="pfit" data-op="${o.id}">${esc(o.name)}</button>`).join(' ')}</div>` : ''}
+    <details class="pplan"${plan && (plan.state === 'complete' || plan.state === 'off-book') ? ' open' : ''}><summary>Game plan</summary><ul>${op.plan.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></details>`;
+  el.querySelectorAll('[data-play]').forEach((b) => {
+    b.onclick = () => { try { chess.move(b.dataset.play); } catch { return; } selected = highlight = null; say(''); refresh(); };
+  });
+  el.querySelectorAll('[data-op]').forEach((b) => { b.onclick = () => choosePlaystyle(b.dataset.op); });
 }
 
 /* ---------- core ---------- */
 function refresh() {
   info = analyze(chess);
+  plan = currentOpening() ? planStatus(chess, currentOpening()) : null;
   render();
   runEngine();
 }
 
 function render() {
-  renderBoard(); renderStatus(); renderAware(); renderMoves(); renderEngine(); drawArrows();
+  renderBoard(); renderSpeed(); renderStatus(); renderPlan(); renderAware(); renderMoves(); renderEngine(); drawArrows();
   $('fen').value = chess.fen();
 }
 
@@ -2761,7 +3500,7 @@ function renderAware() {
    <div class="mute" style="font-size:13px">${themes.filter(([, n]) => n).map(([name, n]) => `${name}: ${n}`).join(' &middot; ') || 'No tactics on the board &mdash; quiet position.'}</div>`;
 }
 
-const matchesFilter = (m, f) => (f === 'engine' ? enginePick(m) >= 0 : m.tags.some((t) => t.kind === f));
+const matchesFilter = (m, f) => (f === 'engine' ? enginePick(m) >= 0 : f === 'plan' ? planPick(m) >= 0 : m.tags.some((t) => t.kind === f));
 
 function renderMoves() {
   const el = $('moves');
@@ -2771,7 +3510,10 @@ function renderMoves() {
   if (settings.level === '1') { el.innerHTML = '<h2>Moves</h2><div class="mute">The move list is hidden. Switch "Move list" in Settings to see it.</div>'; return; }
   const present = THEMES.filter(([k]) => info.moves.some((m) => m.tags.some((t) => t.kind === k)));
   const hasEngine = info.moves.some((m) => enginePick(m) >= 0);
+  const hasPlan = info.moves.some((m) => planPick(m) >= 0);
+  if (filter === 'plan' && !hasPlan) filter = null; // the book move was played; show everything again
   let html = `<h2>All ${info.moves.length} legal moves</h2><div class="themes">
+    ${hasPlan ? `<span class="chip k-plan${filter && filter !== 'plan' ? ' off' : ''}" data-f="plan">📖 Plan move</span>` : ''}
     ${hasEngine ? `<span class="chip k-engine${filter && filter !== 'engine' ? ' off' : ''}" data-f="engine">★ Engine picks</span>` : ''}
     ${present.map(([k, n]) => `<span class="chip k-${k}${filter && filter !== k ? ' off' : ''}" data-f="${k}">${n}</span>`).join('')}
     ${filter ? '<span class="chip" data-f="" style="--c:#667">show all</span>' : ''}</div>`;
@@ -2783,7 +3525,7 @@ function renderMoves() {
     for (const m of groups[k]) {
       const idx = info.moves.indexOf(m);
       const pick = enginePick(m);
-      const star = pick >= 0 ? `<span class="chip k-engine">★ Engine #${pick + 1}</span>` : '';
+      const star = (planPick(m) >= 0 ? '<span class="chip k-plan">📖 Plan</span>' : '') + (pick >= 0 ? `<span class="chip k-engine">★ Engine #${pick + 1}</span>` : '');
       const chips = m.tags.map((t) => `<span class="chip k-${t.kind}" title="${esc(t.text)}">${esc(t.text)}</span>`).join('');
       let verdict = '';
       if (settings.warn && m.net !== null) verdict = m.net > 0 ? ' <span class="good">(wins material)</span>' : m.net === 0 ? ' <span class="mute">(even trade)</span>' : '';
@@ -2867,14 +3609,21 @@ function playTyped(txt) {
 }
 $('moveform').onsubmit = (e) => {
   e.preventDefault();
-  const txt = $('mvin').value.trim();
+  let txt = $('mvin').value.trim();
+  if (!txt && speedMode() && chess.turn() === mySide()) txt = suggestion()?.san || '';
   if (!txt) return;
   if (!playTyped(txt)) {
     say(chess.isGameOver() ? 'The game is over.' : `"${txt}" is not a legal move here. Try e4, Nf3, exd5, O-O or e2e4.`);
     return;
   }
   $('mvin').value = ''; say(''); selected = highlight = null; refresh();
+  if (speedMode() && matchMedia('(pointer: fine)').matches) $('mvin').focus(); // keep typing; phones keep the board visible
 };
+buildPlaystylePicker();
+document.querySelectorAll('#modes button').forEach((b) => { b.onclick = () => chooseMode(b.dataset.mode); });
+applyMode();
+if (currentOpening()) flipped = currentOpening().side === 'b';
+$('playstyle').onchange = (e) => choosePlaystyle(e.target.value);
 $('level').value = settings.level; $('warn').checked = settings.warn;
 $('engineon').checked = settings.engine; $('lines').value = settings.lines; $('depth').value = settings.depth;
 $('level').onchange = (e) => { settings.level = e.target.value; save(); renderMoves(); };

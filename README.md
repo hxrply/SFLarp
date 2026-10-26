@@ -8,6 +8,8 @@ A pocket chess helper: every legal move explained, plus Stockfish's best lines.
 - **Engine suggestions** – Stockfish 19 (in your browser, nothing is sent anywhere) shows its top 1–5 lines with scores, draws arrows on the board and stars its picks in the move list.
 - **Look around** – your hanging/loose pieces, pins, mate threats, targets in their camp, opening checklist.
 - **All legal moves**, grouped by piece (never ranked), tagged: check, capture, threat, fork, discovery, defence, development, castling, promotion. Optional blunder warnings.
+- **Playstyle** – pick an opening to follow: Queen's Gambit, London System, Italian Game, Ruy Lopez, Scholar's Mate, Fried Liver Attack or King's Gambit as White; Caro-Kann, Sicilian Dragon, French, Scandinavian, King's Indian, Queen's Gambit Declined or Accepted as Black. SFLarp shows the next book move with what it is for (gold arrow, "Play" button), the replies to expect, tells you when either side leaves the book and which other playstyles fit, plus the middlegame plan. Positions are matched, so transpositions count. Choose *None* to use SFLarp without one.
+- **Game modes** – *Analysis* (everything), *Blitz 3 min* and *Bullet 1 min*. The fast modes show one big card under the board: your move (or the reply to expect on their turn), the next moves in advance, forced-reply premoves and the most urgent danger; the engine thinks for a fixed 1 s / 0.35 s, and Enter on an empty move box plays the suggestion.
 - **Edit position** – place, move or remove *any* piece for either side, pick who moves, then analyse. Handy for "what if they had a knight there".
 - Type moves (`e4`, `Nf3`, `O-O`) or tap squares to mirror a live game. Load/copy any FEN. Flip the board.
 
