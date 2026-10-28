@@ -15,6 +15,19 @@ A pocket chess helper: every legal move explained, plus Stockfish's best lines.
 
 Engine suggestions can be switched off in Settings (then it is awareness-only).
 
+## Browser extension
+SFLarp also comes as an extension that opens in the browser's side panel, next to whatever tab you're on. It asks for no access to the sites you visit.
+
+**Chrome, Edge, Brave, Opera**
+1. Download [sflarp-extension.zip](https://hxrply.github.io/SFLarp/sflarp-extension.zip) and unzip it.
+2. Open `chrome://extensions` (Edge: `edge://extensions`) and switch on **Developer mode**.
+3. Click **Load unpacked** and choose the unzipped folder (the one containing `manifest.json`).
+4. Pin SFLarp from the puzzle-piece menu, then click its icon to open the side panel.
+
+**Firefox**: open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on** and pick the zip. Firefox removes temporary add-ons when it restarts (a permanent install needs signing by Mozilla).
+
+To update, download the new zip, replace the folder and press the reload button on the extensions page.
+
 ## Hosting
 GitHub Pages serves the `gh-pages` branch at https://hxrply.github.io/SFLarp/ (`main` holds the same code, like the other hxrply projects). After changing anything, rebuild and push the same commit to both branches:
 ```

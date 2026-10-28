@@ -492,6 +492,8 @@ $('moveform').onsubmit = (e) => {
   if (speedMode() && matchMedia('(pointer: fine)').matches) $('mvin').focus(); // keep typing; phones keep the board visible
 };
 buildPlaystylePicker();
+// the extension download is offered on the website only (not inside the extension itself)
+if (/(^|\.)github\.io$|^localhost$|^127\.0\.0\.1$/.test(location.hostname)) $('getext').hidden = false;
 document.querySelectorAll('#modes button').forEach((b) => { b.onclick = () => chooseMode(b.dataset.mode); });
 applyMode();
 if (currentOpening()) flipped = currentOpening().side === 'b';

@@ -46,6 +46,7 @@ textarea{width:100%;font-size:12px}
 .themes .chip{cursor:pointer;opacity:.9}.themes .chip.off{opacity:.35}
 label{display:inline-flex;gap:6px;align-items:center}
 details summary{cursor:pointer;color:var(--mute)}
+a{color:#9bb0ff}
 .eline{display:flex;gap:8px;align-items:baseline;padding:6px 8px;border-radius:8px;cursor:pointer}.eline:hover{background:#363e54}
 .eline .rank{color:var(--mute);width:1.2em;flex:none}
 .eline .ev{flex:none;min-width:4.2em;font-variant-numeric:tabular-nums;font-weight:600}
@@ -131,6 +132,7 @@ details summary{cursor:pointer;color:var(--mute)}
     <label><input type="checkbox" id="warn" checked> Blunder warnings</label>
    </div>
    <div class="mute" style="font-size:12px;margin-top:6px">Moves are listed by piece, never ranked. Stockfish's top picks are starred.</div>
+   <div id="getext" class="mute" style="font-size:12px;margin-top:6px" hidden>Want SFLarp in your browser's side panel? <a href="sflarp-extension.zip">Download the extension</a> (<a href="https://github.com/hxrply/SFLarp#browser-extension" target="_blank" rel="noopener">how to install</a>).</div>
   </div>
   <div class="card aw" id="aware"></div>
   <div class="card" id="moves"></div>

@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SFLarp</title>
+<meta name="description" content="SFLarp: a chess helper with Stockfish's best lines, every legal move explained, and a board editor for any position.">
+<meta name="theme-color" content="#1f2430">
+<link rel="icon" href="icons/icon-32.png" type="image/png">
+<style>
+:root{color-scheme:dark;--bg:#1f2430;--card:#2a3040;--ink:#e8ebf2;--mute:#9aa3b5;--light:#e9d9b8;--dark:#a67d52;--sel:#f6e05e;
+--capture:#e5645c;--check:#f0a23b;--threat:#d98cf0;--fork:#ff7ab6;--discover:#b79cff;--defend:#5ac98f;--develop:#5aa9e6;--center:#8fd0d0;--castle:#9bb0ff;--promo:#ffd166;--mate:#ff4d4d;--engine:#5ac98f;--plan:#f0b429;--warn:#ff8a80}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 system-ui,sans-serif;padding-block:12px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+:focus-visible{outline:2px solid var(--sel);outline-offset:2px}
+main{max-width:980px;margin:0 auto;display:grid;gap:12px;grid-template-columns:minmax(0,1fr)}
+@media(min-width:820px){main{grid-template-columns:minmax(0,460px) minmax(0,1fr);align-items:start}}
+h1{font-size:18px;margin:0 0 4px}h2{font-size:14px;margin:0 0 6px;color:var(--mute);text-transform:uppercase;letter-spacing:.05em}
+.card{background:var(--card);border-radius:12px;padding:12px;min-width:0}
+#boardwrap{position:relative}
+#board{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));grid-template-rows:repeat(8,minmax(0,1fr));max-width:100%;aspect-ratio:1;border-radius:8px;overflow:hidden;user-select:none;touch-action:manipulation}
+#arrows{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.sq{position:relative;min-width:0;min-height:0;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:min(9vw,46px);cursor:pointer;line-height:1}
+.sq.l{background:var(--light)}.sq.d{background:var(--dark)}
+.sq .p{color:#000;text-shadow:0 0 2px #fff6}.sq .p.w{color:#fff;text-shadow:0 0 2px #000,0 0 1px #000}
+.sq.sel{background:var(--sel)!important}.sq.hl{outline:3px solid var(--sel);outline-offset:-3px}
+.sq .dot{position:absolute;width:30%;height:30%;border-radius:50%;background:#0006}
+.sq .coord{position:absolute;left:2px;top:0;font-size:9px;color:#0008}
+.row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+button,select,textarea,input{font:inherit;color:var(--ink);background:#3a4258;border:0;border-radius:8px;padding:7px 11px}
+button{cursor:pointer}button:active{background:#4a5470}
+button.on{background:#566190}
+textarea{width:100%;font-size:12px}
+#mvin{flex:1;min-width:0}
+#msg{min-height:1.2em;font-size:13px;color:var(--warn);margin-top:4px}
+.chip{display:inline-block;border-radius:999px;padding:1px 9px;font-size:12px;margin:2px 4px 2px 0;color:#14171f;background:var(--c,#aab)}
+.chip.warn{background:none;border:1px solid var(--warn);color:var(--warn)}
+.k-capture{--c:var(--capture)}.k-check{--c:var(--check)}.k-threat{--c:var(--threat)}.k-fork{--c:var(--fork)}.k-discover{--c:var(--discover)}.k-defend{--c:var(--defend)}.k-develop{--c:var(--develop)}.k-center{--c:var(--center)}.k-castle{--c:var(--castle)}.k-promo{--c:var(--promo)}.k-mate{--c:var(--mate)}.k-engine{--c:var(--engine);font-weight:600}.k-plan{--c:var(--plan);font-weight:600}
+.aw ul{margin:2px 0 8px;padding-left:18px}.aw li{margin:2px 0}.bad{color:var(--warn)}.good{color:var(--defend)}.mute{color:var(--mute)}
+.mv{padding:6px 8px;border-radius:8px;cursor:pointer}.mv:hover,.mv.act{background:#363e54}
+.mv b{display:inline-block;min-width:54px}
+.grp{margin:8px 0 2px;color:var(--mute);font-size:12px;text-transform:uppercase}
+.themes .chip{cursor:pointer;opacity:.9}.themes .chip.off{opacity:.35}
+label{display:inline-flex;gap:6px;align-items:center}
+details summary{cursor:pointer;color:var(--mute)}
+a{color:#9bb0ff}
+.eline{display:flex;gap:8px;align-items:baseline;padding:6px 8px;border-radius:8px;cursor:pointer}.eline:hover{background:#363e54}
+.eline .rank{color:var(--mute);width:1.2em;flex:none}
+.eline .ev{flex:none;min-width:4.2em;font-variant-numeric:tabular-nums;font-weight:600}
+.eline .pv{min-width:0;overflow-wrap:anywhere}
+.ev.pos{color:var(--defend)}.ev.neg{color:var(--warn)}
+.ptitle{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;margin:8px 0 2px;font-size:16px}
+.pstatus{margin:10px 0;padding:10px 12px;border-radius:8px;background:#232938;border-left:3px solid var(--plan)}
+.plabel{font-size:12px;color:var(--mute);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
+.pmove{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center;padding:4px 0}
+.pmove b{font-size:17px;min-width:3.2em}.pnote{flex:1 1 12em;min-width:0;font-size:13px}
+.pmove button{background:#5a4a1e;color:#ffe7a8}
+.pfit{font-size:13px;padding:4px 9px;margin:2px 0}
+.pplan ul{margin:6px 0 0;padding-left:18px}.pplan li{margin:3px 0;font-size:14px}
+#playstyle{max-width:100%}
+.modes{display:flex;gap:4px;margin:0 0 10px;padding:3px;background:#1b202b;border-radius:10px}
+.modes button{flex:1;padding:7px 4px;font-size:14px;background:none}
+.modes button.on{background:#566190;font-weight:600}
+.speedhide{display:none!important}
+#speed{margin-top:10px;padding:12px 14px;border-radius:10px;background:#1b202b;border:1px solid #3a4258}
+.slabel{font-size:12px;color:var(--mute);text-transform:uppercase;letter-spacing:.05em}
+.sbig{font-size:34px;font-weight:700;line-height:1.15;margin:2px 0 4px;overflow-wrap:anywhere}
+.sbig .ssrc{font-size:14px;font-weight:600;color:var(--engine);vertical-align:middle}
+.sbig.them,.them{color:#c9b8ff}
+.sthen{font-size:16px;margin:2px 0}
+.spre{font-size:13px;color:var(--plan);margin-top:4px}
+.sdanger{font-size:14px;color:var(--warn);font-weight:600;margin-top:4px}
+.shint{font-size:12px;color:var(--mute);margin-top:6px}
+.palette{display:flex;flex-wrap:wrap;gap:4px;margin:6px 0}
+.palette button{font-size:24px;line-height:1;padding:4px 9px;min-width:44px}
+.palette .w{color:#fff;text-shadow:0 0 2px #000}.palette .b{color:#111;background:#c9cfdc}
+.palette .b.on{background:#f6e05e}
+</style>
+</head>
+<body>
+<main>
+ <section>
+  <div class="card">
+   <h1>♞ SFLarp</h1>
+   <div class="mute" style="font-size:13px;margin-bottom:8px">Every legal move explained, plus Stockfish's best lines. Play both sides' moves to track your game, or set up any position.</div>
+   <div class="modes" id="modes" role="group" aria-label="Game mode"><button type="button" data-mode="analysis">Analysis</button><button type="button" data-mode="blitz">Blitz 3 min</button><button type="button" data-mode="bullet">Bullet 1 min</button></div>
+   <div id="boardwrap"><div id="board"></div><svg id="arrows" viewBox="0 0 8 8" aria-hidden="true"></svg></div>
+   <div id="speed" hidden aria-live="polite"></div>
+   <div id="status" style="margin-top:8px"></div>
+   <form class="row" id="moveform" autocomplete="off"><input id="mvin" placeholder="Type a move: e4, Nf3, exd5, O-O" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go"><button type="submit">Play</button></form>
+   <div id="msg" role="status"></div>
+   <div class="row">
+    <button id="undo">↶ Undo</button><button id="flip">⇅ Flip</button><button id="edit">✎ Edit position</button><button id="new">New game</button>
+   </div>
+   <div id="editor" hidden>
+    <h2 style="margin-top:12px">Set up the position</h2>
+    <div class="mute" style="font-size:13px">Pick a piece, then tap squares to place it. <b>✋ Move</b> picks a piece up and drops it elsewhere; <b>✕</b> removes.</div>
+    <div class="palette" id="palette"></div>
+    <div class="row" style="margin-top:0">
+     <label>Side to move <select id="editturn"><option value="w">White</option><option value="b">Black</option></select></label>
+    </div>
+    <div class="row">
+     <button id="eclear">Clear board</button><button id="estart">Start position</button><button id="ereset">Undo changes</button>
+    </div>
+    <div class="row">
+     <button id="edone" class="on">✓ Done</button><button id="ecancel">Cancel</button>
+    </div>
+   </div>
+   <details style="margin-top:8px"><summary>Load / copy position (FEN)</summary>
+    <textarea id="fen" rows="2"></textarea>
+    <div class="row"><button id="loadfen">Load FEN</button></div>
+   </details>
+  </div>
+  <div class="card" id="engine" style="margin-top:12px"></div>
+ </section>
+ <section style="display:grid;gap:12px;align-content:start">
+  <div class="card" id="plancard">
+   <h2>Playstyle</h2>
+   <label for="playstyle" style="display:flex;gap:8px;flex-wrap:wrap">Opening to follow <select id="playstyle"></select></label>
+   <div id="planbody"></div>
+  </div>
+  <div class="card">
+   <h2>Settings</h2>
+   <div class="row" style="margin-top:0">
+    <label><input type="checkbox" id="engineon" checked> Engine suggestions</label>
+    <label>Lines <select id="lines"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option></select></label>
+    <label>Depth <select id="depth"><option value="10">10 (fast)</option><option value="14">14</option><option value="16" selected>16</option><option value="20">20</option><option value="24">24 (slow)</option></select></label>
+   </div>
+   <div class="row">
+    <label>Move list <select id="level"><option value="1">Hidden</option><option value="2" selected>All moves + notes</option></select></label>
+    <label><input type="checkbox" id="warn" checked> Blunder warnings</label>
+   </div>
+   <div class="mute" style="font-size:12px;margin-top:6px">Moves are listed by piece, never ranked. Stockfish's top picks are starred.</div>
+   <div id="getext" class="mute" style="font-size:12px;margin-top:6px" hidden>Want SFLarp in your browser's side panel? <a href="sflarp-extension.zip">Download the extension</a> (<a href="https://github.com/hxrply/SFLarp#browser-extension" target="_blank" rel="noopener">how to install</a>).</div>
+  </div>
+  <div class="card aw" id="aware"></div>
+  <div class="card" id="moves"></div>
+ </section>
+</main>
+<script src="app.js"></script>
+</body>
+</html>
