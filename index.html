@@ -3865,6 +3865,8 @@ const leaveReview = () => { if (review) { review = null; doc.body.classList.remo
 $('undo').onclick = () => { if (editing) return; leaveReview(); chess.undo(); selected = highlight = null; say(''); refresh(); };
 $('reviewbtn').onclick = () => (review ? closeReview() : startReview());
 $('popout').onclick = popOut;
+// inside a frame (e.g. an embedded copy) browsers allow neither floating windows nor reliable pop-ups
+try { if (window.self !== window.top) $('popout').hidden = true; } catch { $('popout').hidden = true; }
 document.getElementById('popback').onclick = () => pipWin?.close();
 window.addEventListener('keydown', onKey);
 $('flip').onclick = () => { flipped = !flipped; render(); };
