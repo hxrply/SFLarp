@@ -551,3 +551,9 @@ export function fittingOpenings(chess, side, exceptId) {
   const k = posKey(chess.fen());
   return OPENINGS.filter((o) => o.side === side && o.id !== exceptId && (bookFor(o).get(k) || []).length);
 }
+
+/** True when `san` played from the position `fen` is a move in any of the opening books. */
+export function isBookMove(fen, san) {
+  const k = posKey(fen);
+  return OPENINGS.some((o) => (bookFor(o).get(k) || []).some((m) => m.san === san));
+}

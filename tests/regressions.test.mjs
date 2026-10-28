@@ -75,3 +75,28 @@ test('editor keeps lost castling rights and the move number', () => {
 test('gridProblem accepts the start position and counts promotions per side', () => {
   assert.equal(gridProblem(gridOf(new Chess())), null);
 });
+
+import { winPercent, moveAccuracy, sideAccuracy, classify, whiteCp } from '../src/review.js';
+import { isBookMove } from '../src/openings.js';
+
+test('review maths: winning chances, accuracy and labels behave sensibly', () => {
+  assert.equal(Math.round(winPercent(0)), 50);
+  assert.ok(winPercent(300) > 70 && winPercent(-300) < 30);
+  assert.ok(Math.abs(winPercent(10000) - 100) < 3 && winPercent(-10000) < 3, 'mates are clamped near 0/100');
+  assert.ok(moveAccuracy(0) > 99.9 && moveAccuracy(0) <= 100);
+  assert.ok(moveAccuracy(30) < 30 && moveAccuracy(100) >= 0);
+  assert.ok(sideAccuracy([100, 100, 10]) < (100 + 100 + 10) / 3, 'one blunder pulls accuracy below the plain average');
+  assert.equal(sideAccuracy([]), null);
+  assert.equal(whiteCp({ cp: 50 }, 'b'), -50);
+  assert.equal(whiteCp({ mate: -2 }, 'w'), -10000);
+  assert.equal(classify({ drop: 0, isBest: true }), 'best');
+  assert.equal(classify({ drop: 0, isBest: true, onlyMove: true }), 'great');
+  assert.equal(classify({ drop: 1, isBest: false, inBook: true }), 'book');
+  assert.deepEqual([1, 3, 7, 15, 40].map((drop) => classify({ drop, isBest: false })), ['excellent', 'good', 'inaccuracy', 'mistake', 'blunder']);
+});
+
+test('isBookMove finds opening-book moves', () => {
+  const start = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+  assert.ok(isBookMove(start, 'e4') && isBookMove(start, 'd4'));
+  assert.ok(!isBookMove(start, 'a4'));
+});

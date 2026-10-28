@@ -6,7 +6,7 @@ import { execFileSync } from 'node:child_process';
 const strip = (code) => code
   .replace(/^import .*$/gm, '')
   .replace(/^export (const|let|function|async function|class) /gm, '$1 ');
-const files = ['vendor/chess.js', 'src/awareness.js', 'src/engine.js', 'src/editor.js', 'src/openings.js', 'src/app.js'];
+const files = ['vendor/chess.js', 'src/awareness.js', 'src/engine.js', 'src/editor.js', 'src/openings.js', 'src/review.js', 'src/app.js'];
 // every module imported by a bundled file must itself be bundled (in order) or the page breaks at runtime
 for (const f of files) {
   for (const [, rel] of readFileSync(f, 'utf8').matchAll(/^import .* from '(.+)';$/gm)) {
