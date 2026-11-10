@@ -29,14 +29,14 @@ export function sideAccuracy(accs) {
 }
 
 export const LABELS = {
-  book: { name: 'Book', mark: '📖', color: '#c9a36a' },
-  great: { name: 'Great', mark: '!', color: '#5aa9e6' },
-  best: { name: 'Best', mark: '★', color: '#5ac98f' },
-  excellent: { name: 'Excellent', mark: '👍', color: '#8fd19e' },
-  good: { name: 'Good', mark: '✓', color: '#a7c4a0' },
+  book: { name: 'Book', mark: '', color: '#c9a36a' },
+  great: { name: 'Great', mark: '!', color: '#6aa9e0' },
+  best: { name: 'Best', mark: '', color: '#5dbb8a' },
+  excellent: { name: 'Excellent', mark: '', color: '#8fd19e' },
+  good: { name: 'Good', mark: '', color: '#a7c4a0' },
   inaccuracy: { name: 'Inaccuracy', mark: '?!', color: '#f2c94c' },
   mistake: { name: 'Mistake', mark: '?', color: '#f0a23b' },
-  blunder: { name: 'Blunder', mark: '??', color: '#ff5c5c' },
+  blunder: { name: 'Blunder', mark: '??', color: '#f25555' },
 };
 export const LABEL_ORDER = ['great', 'best', 'excellent', 'good', 'book', 'inaccuracy', 'mistake', 'blunder'];
 

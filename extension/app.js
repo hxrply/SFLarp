@@ -3018,14 +3018,14 @@ function sideAccuracy(accs) {
 }
 
 const LABELS = {
-  book: { name: 'Book', mark: '📖', color: '#c9a36a' },
-  great: { name: 'Great', mark: '!', color: '#5aa9e6' },
-  best: { name: 'Best', mark: '★', color: '#5ac98f' },
-  excellent: { name: 'Excellent', mark: '👍', color: '#8fd19e' },
-  good: { name: 'Good', mark: '✓', color: '#a7c4a0' },
+  book: { name: 'Book', mark: '', color: '#c9a36a' },
+  great: { name: 'Great', mark: '!', color: '#6aa9e0' },
+  best: { name: 'Best', mark: '', color: '#5dbb8a' },
+  excellent: { name: 'Excellent', mark: '', color: '#8fd19e' },
+  good: { name: 'Good', mark: '', color: '#a7c4a0' },
   inaccuracy: { name: 'Inaccuracy', mark: '?!', color: '#f2c94c' },
   mistake: { name: 'Mistake', mark: '?', color: '#f0a23b' },
-  blunder: { name: 'Blunder', mark: '??', color: '#ff5c5c' },
+  blunder: { name: 'Blunder', mark: '??', color: '#f25555' },
 };
 const LABEL_ORDER = ['great', 'best', 'excellent', 'good', 'book', 'inaccuracy', 'mistake', 'blunder'];
 
@@ -3055,10 +3055,8 @@ function classify({ drop, isBest, onlyMove = false, inBook = false }) {
 // the document SFLarp is shown in: the page itself, or the floating window after "Pop out"
 let doc = document;
 const $ = (id) => doc.getElementById(id);
-const GLYPH = { wk: '♔', wq: '♕', wr: '♖', wb: '♗', wn: '♘', wp: '♙', bk: '♚', bq: '♛', br: '♜', bb: '♝', bn: '♞', bp: '♟' };
 const PIECE_NAME = { k: 'King', q: 'Queen', r: 'Rooks', b: 'Bishops', n: 'Knights', p: 'Pawns' };
 const THEMES = [['mate', 'Checkmate'], ['check', 'Checks'], ['capture', 'Captures'], ['threat', 'Threats'], ['fork', 'Forks'], ['discover', 'Discoveries'], ['defend', 'Defensive'], ['develop', 'Development'], ['castle', 'Castling'], ['promo', 'Promotions']];
-const PRIORITY = ['mate', 'check', 'fork', 'capture', 'threat', 'discover', 'defend', 'promo', 'castle', 'develop', 'center'];
 const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 // fast game modes: the engine thinks for a fixed time, and a big move card replaces the long panels
 const MODES = {
@@ -3079,11 +3077,10 @@ let plan = null;
 // game review: null, or { status: 'running' | 'done', hist, fens, evals, moves, idx, done, token }
 let review = null;
 
-const settings = { level: '2', warn: true, engine: true, lines: '3', depth: '16', playstyle: '', mode: 'analysis', reviewTime: '600' };
+const settings = { level: '2', warn: true, engine: true, lines: '3', depth: '16', playstyle: '', mode: 'analysis', reviewTime: '600', side: 'w' };
 try { Object.assign(settings, JSON.parse(localStorage.getItem('cc-settings') || '{}')); } catch {}
 const save = () => { try { localStorage.setItem('cc-settings', JSON.stringify(settings)); } catch {} };
 const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
-const kindOf = (m) => PRIORITY.find((k) => m.tags.some((t) => t.kind === k));
 const squareIndex = (n) => (8 - Number(n[1])) * 8 + 'abcdefgh'.indexOf(n[0]);
 const say = (t) => { $('msg').textContent = t; };
 const speedMode = () => (settings.mode !== 'analysis' && MODES[settings.mode]) || null;
@@ -3099,7 +3096,7 @@ function runEngine() {
   clearTimeout(engineTimer);
   const token = ++engineToken;
   if (review) return; // the review is using the engine
-  if (editing || !settings.engine || info.gameOver) {
+  if (editing || !settings.engine || info.gameOver || !myTurn()) {
     engine?.stop();
     eng = { status: settings.engine ? 'idle' : 'off', lines: [], depth: 0, fen: '', turn: chess.turn(), msg: '' };
     renderEngine(); drawArrows(); renderMoves(); renderSpeed();
@@ -3151,9 +3148,12 @@ function renderEngine() {
   const el = $('engine');
   if (editing || settings.mode === 'bullet') { el.hidden = true; return; }
   el.hidden = false;
-  if (!settings.engine) { el.innerHTML = '<h2>Engine</h2><div class="mute">Engine suggestions are off. Turn them on in Settings to see Stockfish\'s best lines.</div>'; return; }
-  if (info.gameOver) { el.innerHTML = '<h2>Engine</h2><div class="mute">Game over.</div>'; return; }
-  if (eng.status === 'error') { el.innerHTML = `<h2>Engine</h2><div class="bad">${esc(eng.msg)}</div>`; return; }
+  const name = esc(engine?.name || 'Stockfish 19');
+  const box = (text, cls = 'mute') => { el.innerHTML = `<h2>Best moves</h2><div class="${cls}">${text}</div>`; };
+  if (!settings.engine) { box('Engine suggestions are off. Turn them on in Settings to see Stockfish\'s best lines.'); return; }
+  if (info.gameOver) { box('Game over.'); return; }
+  if (eng.status === 'error') { box(esc(eng.msg), 'bad'); return; }
+  if (!myTurn()) { box(`${sideName(chess.turn())} to move. Enter their move and your best moves appear here.`); return; }
   const state = eng.status === 'done' ? `depth ${eng.depth}` : eng.lines.length ? `thinking… depth ${eng.depth}${speedMode() ? '' : `/${settings.depth}`}` : 'starting engine…';
   const rows = eng.lines.map((l, r) => {
     if (!l) return '';
@@ -3163,8 +3163,8 @@ function renderEngine() {
     return `<div class="eline" data-r="${r}"><span class="rank">${r + 1}</span><span class="ev ${v > 30 ? 'pos' : v < -30 ? 'neg' : ''}">${fmtScore(l.score, eng.turn)}</span><span class="pv"><b>${esc(san[0])}</b> ${esc(san.slice(1).join(' '))}</span></div>`;
   }).join('');
   const empty = eng.status === 'done' ? '<div class="bad">Stockfish could not analyse this position.</div>' : '<div class="mute">Working out the best moves…</div>';
-  el.innerHTML = `<h2>${esc(engine?.name || 'Stockfish 19')} &middot; <span class="mute" style="text-transform:none;letter-spacing:0">${state}</span></h2>${rows || empty}
-   <div class="mute" style="font-size:12px;margin-top:6px">Scores are from White's side (+ is better for White, #3 is mate in 3). Tap a line to see its first move.</div>`;
+  el.innerHTML = `<h2>Best moves for ${sideName(chess.turn())} <span class="sub">${name} &middot; ${state}</span></h2>${rows || empty}
+   <div class="foot">Scores are from White's side: + is better for White, #3 is mate in 3. Tap a line to see its first move.</div>`;
   el.querySelectorAll('.eline').forEach((row) => {
     row.onclick = () => { const m = engineMove(eng.lines[row.dataset.r]); selected = m.from; highlight = [m.from, m.to]; renderBoard(); };
   });
@@ -3190,22 +3190,20 @@ function drawArrows() {
     const i = review.idx - 1, mv = review.moves?.[i];
     if (i >= 0) {
       const h = review.hist[i];
-      out += arrow(h.from, h.to, mv ? LABELS[mv.label].color : '#9aa3b5', 0.15, 0.9);
+      out += arrow(h.from, h.to, mv ? LABELS[mv.label].color : '#8f97a3', 0.15, 0.9);
       const best = review.evals[i]?.best;
-      if (mv && best && !['best', 'great', 'book'].includes(mv.label)) out += arrow(best.slice(0, 2), best.slice(2, 4), '#5ac98f', 0.15, 0.85);
+      if (mv && best && !['best', 'great', 'book'].includes(mv.label)) out += arrow(best.slice(0, 2), best.slice(2, 4), '#5dbb8a', 0.15, 0.85);
     }
     svg.innerHTML = out;
     return;
   }
   // the plan's book move sits underneath, slightly wider, so it still shows when the engine agrees
-  if (plan?.state === 'your-move') for (const m of plan.next) out += arrow(m.from, m.to, '#f0b429', 0.22, 0.9);
+  if (plan?.state === 'your-move') for (const m of plan.next) out += arrow(m.from, m.to, '#deb04f', 0.22, 0.9);
   if (settings.engine) {
-    // in a fast mode on their turn the engine's line is their expected move: show it in their colour
-    const theirs = speedMode() && chess.turn() !== mySide();
     eng.lines.forEach((l, k) => {
       if (!l) return;
       const m = engineMove(l);
-      out += arrow(m.from, m.to, k === 0 ? (theirs ? '#c9b8ff' : '#5ac98f') : '#5aa9e6', k === 0 ? 0.15 : 0.1, k === 0 ? 0.9 : 0.65);
+      out += arrow(m.from, m.to, k === 0 ? '#5dbb8a' : '#6aa9e0', k === 0 ? 0.15 : 0.1, k === 0 ? 0.9 : 0.65);
     });
   }
   svg.innerHTML = out;
@@ -3325,23 +3323,23 @@ function renderReview() {
   let detail = '<span class="mute">Start of the game. Use the arrows to step through it.</span>';
   if (cur) {
     const L = LABELS[cur.label];
-    detail = `<b>${moveNo(i)}${esc(cur.san)}</b> <span class="rlabel" style="--c:${L.color}">${L.mark} ${L.name}</span>
+    detail = `<b>${moveNo(i)}${esc(cur.san)}</b> <span class="rlabel" style="--c:${L.color}">${L.name}</span>
       <span class="mute">eval ${fmtEval(review.evals[i + 1].cp)}</span>
       ${['inaccuracy', 'mistake', 'blunder', 'good', 'excellent'].includes(cur.label) && cur.bestSan ? `<div>Best was <b class="good">${esc(cur.bestSan)}</b> (${fmtEval(review.evals[i].cp)}).</div>` : ''}`;
   }
   const mine = mySide();
   const keys = review.moves.map((m, k) => ({ m, k })).filter(({ m }) => m.color === mine && ['mistake', 'blunder'].includes(m.label));
-  el.innerHTML = `<div class="rhead"><h2>Game review</h2><button type="button" id="rclose">Back to game</button></div>
+  el.innerHTML = `<div class="rhead"><h2>Game review</h2><button type="button" id="rclose" class="primary">Back to game</button></div>
     <div class="racc"><div><span class="rbig">${acc(review.accuracy.w)}</span><span class="mute">White accuracy</span></div><div><span class="rbig">${acc(review.accuracy.b)}</span><span class="mute">Black accuracy</span></div></div>
     ${reviewGraph()}
-    <div class="rnav"><button type="button" data-go="0" aria-label="First move">⏮</button><button type="button" data-go="${review.idx - 1}" aria-label="Previous move">◀</button><button type="button" data-go="${review.idx + 1}" aria-label="Next move">▶</button><button type="button" data-go="${review.fens.length - 1}" aria-label="Last move">⏭</button></div>
+    <div class="rnav"><button type="button" data-go="0" aria-label="First move">&laquo;</button><button type="button" data-go="${review.idx - 1}" aria-label="Previous move">&lsaquo;</button><button type="button" data-go="${review.idx + 1}" aria-label="Next move">&rsaquo;</button><button type="button" data-go="${review.fens.length - 1}" aria-label="Last move">&raquo;</button></div>
     <div class="rdetail">${detail}</div>
     ${keys.length ? `<div class="rkeys">Your ${keys.length === 1 ? 'mistake' : 'mistakes'} (${sideName(mine)}): ${keys.map(({ m, k }) => `<button type="button" data-go="${k + 1}" style="--c:${LABELS[m.label].color}">${moveNo(k)}${esc(m.san)}${LABELS[m.label].mark}</button>`).join(' ')}</div>` : ''}
     <table class="rtab"><thead><tr><th></th><th>White</th><th>Black</th></tr></thead><tbody>
-      ${LABEL_ORDER.map((l) => `<tr><td><span class="rlabel" style="--c:${LABELS[l].color}">${LABELS[l].mark}</span> ${LABELS[l].name}</td><td>${count(l, 'w')}</td><td>${count(l, 'b')}</td></tr>`).join('')}
+      ${LABEL_ORDER.map((l) => `<tr><td><span class="rlabel" style="--c:${LABELS[l].color}">${LABELS[l].name}</span></td><td>${count(l, 'w')}</td><td>${count(l, 'b')}</td></tr>`).join('')}
     </tbody></table>
-    <div class="rmoves">${review.moves.map((m, k) => `${k % 2 ? '' : `<span class="mute">${k / 2 + 1}.</span>`}<button type="button" data-go="${k + 1}" class="${k === i ? 'on' : ''}" style="--c:${LABELS[m.label].color}">${esc(m.san)}<sup>${LABELS[m.label].mark}</sup></button>`).join(' ')}</div>
-    <div class="mute" style="font-size:12px;margin-top:8px">Labels and accuracy come from Stockfish 19 lite with ${(Number(settings.reviewTime) / 1000).toFixed(2).replace(/0$/, '')} s per position, using lichess's public accuracy formula, so numbers can differ a little from chess.com's.</div>`;
+    <div class="rmoves">${review.moves.map((m, k) => `${k % 2 ? '' : `<span class="mute">${k / 2 + 1}.</span>`}<button type="button" data-go="${k + 1}" class="${k === i ? 'on' : ''}" style="--c:${LABELS[m.label].color}">${esc(m.san)}<i>${LABELS[m.label].mark}</i></button>`).join(' ')}</div>
+    <div class="foot">Labels and accuracy come from Stockfish 19 lite with ${(Number(settings.reviewTime) / 1000).toFixed(2).replace(/0$/, '')} s per position, using lichess's public accuracy formula, so numbers can differ a little from chess.com's.</div>`;
   $('rclose').onclick = closeReview;
   el.querySelectorAll('[data-go]').forEach((b) => { b.onclick = () => reviewGo(Number(b.dataset.go)); });
   const g = el.querySelector('.rgraph');
@@ -3388,7 +3386,24 @@ async function popOut() {
 
 /* ---------- fast game modes ---------- */
 // the side you are playing: the playstyle's side, otherwise the side at the bottom of the board
-const mySide = () => currentOpening()?.side || (flipped ? 'b' : 'w');
+const mySide = () => currentOpening()?.side || (settings.side === 'both' ? (flipped ? 'b' : 'w') : settings.side);
+// with "Both", every move is treated as yours (best moves are shown for whoever is to move)
+const bothSides = () => settings.side === 'both' && !currentOpening();
+const myTurn = () => bothSides() || chess.turn() === mySide();
+
+function renderSides() {
+  const cur = bothSides() ? 'both' : mySide();
+  doc.querySelectorAll('#sidebar button').forEach((b) => b.classList.toggle('on', b.dataset.side === cur));
+}
+
+function chooseSide(side) {
+  const op = currentOpening();
+  if (op && side !== op.side) { settings.playstyle = ''; $('playstyle').value = ''; } // that opening is for the other side
+  settings.side = side; save();
+  if (side !== 'both') flipped = side === 'b';
+  selected = highlight = null;
+  refresh();
+}
 
 /** The move to suggest when it is your turn: the book move while in the opening, else the engine's first choice. */
 function suggestion() {
@@ -3405,7 +3420,7 @@ function renderSpeed() {
   if (!speed || editing || !info) { el.hidden = true; return; }
   el.hidden = false;
   if (info.gameOver) { el.innerHTML = `<div class="slabel">Game over</div><div class="sbig">${info.gameOver === 'checkmate' ? 'Checkmate' : 'Draw'}</div>`; return; }
-  const yours = chess.turn() === mySide();
+  const yours = myTurn();
   const l = settings.engine && eng.fen === chess.fen() ? eng.lines[0] : null;
   const pv = l ? pvToSan(eng.fen, l.pv, speed.ahead + 1) : [];
   // dangers, from your point of view whoever is to move
@@ -3422,10 +3437,10 @@ function renderSpeed() {
   if (yours) {
     const s = suggestion();
     html += `<div class="slabel">Your move</div>`;
-    if (!s) html += `<div class="sbig mute">${settings.engine ? 'thinking…' : 'Engine off'}</div>`;
+    if (!s) html += `<div class="sbig wait">${settings.engine ? 'Thinking…' : 'Engine off'}</div>`;
     else {
       const engineAgrees = s.source === 'book' && pv[0] === s.san;
-      html += `<div class="sbig">${esc(s.san)} <span class="ssrc">${s.source === 'book' ? `📖 book${pv[0] && !engineAgrees ? ` &middot; engine: ${esc(pv[0])}` : ''}` : `★ ${esc(s.score)}`}</span></div>`;
+      html += `<div class="sbig">${esc(s.san)} <span class="ssrc${s.source === 'book' ? ' book' : ''}">${s.source === 'book' ? `Book${pv[0] && !engineAgrees ? ` &middot; engine: ${esc(pv[0])}` : ''}` : esc(s.score)}</span></div>`;
       // moves ahead: only from the engine line that starts with the suggested move
       if (pv[0] === s.san && pv.length > 1) {
         html += `<div class="sthen">Then: ${chain(pv.slice(1), false)}</div>`;
@@ -3438,12 +3453,10 @@ function renderSpeed() {
       }
     }
   } else {
-    html += `<div class="slabel">Their move &middot; type it in</div>`;
-    html += pv[0] ? `<div class="sbig them">Expect ${esc(pv[0])}</div>${pv.length > 1 ? `<div class="sthen">Your answer: ${chain(pv.slice(1), true)}</div>` : ''}`
-      : `<div class="sbig mute">${settings.engine ? 'thinking…' : 'Engine off'}</div>`;
+    html += `<div class="slabel">Their move</div><div class="sbig wait">Enter their move</div>`;
   }
-  if (dangers.length) html += dangers.slice(0, speed.dangers).map((d) => `<div class="sdanger">&#9888; ${esc(d)}</div>`).join('');
-  html += `<div class="shint">You are ${sideName(mySide())}${currentOpening() ? '' : ' (Flip to switch)'}. Enter on an empty move box plays your suggested move.</div>`;
+  if (dangers.length) html += dangers.slice(0, speed.dangers).map((d) => `<div class="sdanger">${esc(d)}</div>`).join('');
+  html += `<div class="shint">${bothSides() ? 'Showing moves for both sides' : `You are ${sideName(mySide())}`}. Enter on an empty move box plays your suggested move.</div>`;
   el.innerHTML = html;
 }
 
@@ -3476,7 +3489,7 @@ function choosePlaystyle(id) {
   settings.playstyle = id; save();
   $('playstyle').value = id;
   const op = currentOpening();
-  if (op) flipped = op.side === 'b'; // look at the board from the side you are playing
+  if (op) { settings.side = op.side; save(); flipped = op.side === 'b'; } // look at the board from the side you are playing
   refresh();
 }
 
@@ -3484,7 +3497,7 @@ function renderPlan() {
   const el = $('planbody');
   const op = currentOpening();
   if (!op) {
-    el.innerHTML = '<div class="mute" style="font-size:13px;margin-top:6px">Pick an opening and SFLarp shows its moves, what each one is for, and the plan afterwards. Choose None to use SFLarp as it is.</div>';
+    el.innerHTML = '<div class="foot">Pick an opening and SFLarp shows its moves, what each one is for, and the plan afterwards.</div>';
     return;
   }
   const move = (d) => `${d.moveNo}${d.black ? '...' : '.'}${esc(d.san)}`;
@@ -3493,11 +3506,11 @@ function renderPlan() {
   else if (!plan) status = '';
   else if (plan.state === 'your-move') {
     status = `<div class="plabel">Your book move${plan.next.length > 1 ? 's' : ''}</div>` + plan.next.map((m) => `
-      <div class="pmove"><b>${esc(m.san)}</b><span class="pnote">${esc(noteFor(op, m.san))}</span><button type="button" data-play="${esc(m.san)}">Play ${esc(m.san)}</button></div>`).join('');
+      <div class="pmove"><b>${esc(m.san)}</b><span class="pnote">${esc(noteFor(op, m.san))}</span><button type="button" class="primary" data-play="${esc(m.san)}">Play ${esc(m.san)}</button></div>`).join('');
   } else if (plan.state === 'their-move') {
     status = `<div class="plabel">Their move</div><div>The book expects ${plan.next.map((m) => `<b>${esc(m.san)}</b>`).join(', ')}. Enter their move when they play it.</div>`;
   } else if (plan.state === 'complete') {
-    status = `<div class="good">&#10003; You've played the whole ${esc(op.name)} line. Follow the game plan below; the engine and the move notes still work as normal.</div>`;
+    status = `<div class="good">You've played the whole ${esc(op.name)} line. Follow the game plan below; the engine and the move notes still work as normal.</div>`;
   } else if (plan.state === 'off-book') {
     const d = plan.deviation;
     status = d.byYou
@@ -3508,11 +3521,11 @@ function renderPlan() {
   }
   const fits = plan && (plan.state === 'off-book' || plan.state === 'not-from-start') && !info.gameOver ? fittingOpenings(chess, op.side, op.id) : [];
   el.innerHTML = `
-    <div class="ptitle"><b>${esc(op.name)}</b><span class="chip k-plan">You play ${sideName(op.side)}</span><span class="chip" style="--c:#8a93a8">${esc(op.style)}</span></div>
-    <div class="mute" style="font-size:13px">${esc(op.summary)}</div>
-    ${op.warning ? `<div class="bad" style="font-size:13px;margin-top:4px">&#9888; ${esc(op.warning)}</div>` : ''}
+    <div class="ptitle"><b>${esc(op.name)}</b><span class="chip k-plan">You play ${sideName(op.side)}</span><span class="chip">${esc(op.style)}</span></div>
+    <div class="mute small">${esc(op.summary)}</div>
+    ${op.warning ? `<div class="bad small" style="margin-top:4px">${esc(op.warning)}</div>` : ''}
     <div class="pstatus">${status}</div>
-    ${fits.length ? `<div style="font-size:13px">Playstyles that fit this position: ${fits.map((o) => `<button type="button" class="pfit" data-op="${o.id}">${esc(o.name)}</button>`).join(' ')}</div>` : ''}
+    ${fits.length ? `<div class="small">Playstyles that fit this position: ${fits.map((o) => `<button type="button" class="pfit" data-op="${o.id}">${esc(o.name)}</button>`).join(' ')}</div>` : ''}
     <details class="pplan"${plan && (plan.state === 'complete' || plan.state === 'off-book') ? ' open' : ''}><summary>Game plan</summary><ul>${op.plan.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></details>`;
   el.querySelectorAll('[data-play]').forEach((b) => {
     b.onclick = () => { try { chess.move(b.dataset.play); } catch { return; } selected = highlight = null; say(''); refresh(); };
@@ -3530,7 +3543,8 @@ function refresh() {
 
 function render() {
   renderBoard(); renderSpeed(); renderStatus(); renderPlan(); renderAware(); renderMoves(); renderEngine(); renderReview(); drawArrows();
-  $('popout').textContent = pipWin ? '⧉ Pop back in' : '⧉ Pop out';
+  $('popout').textContent = pipWin ? 'Pop back in' : 'Pop out';
+  renderSides();
   $('fen').value = chess.fen();
 }
 
@@ -3548,12 +3562,10 @@ function renderBoard() {
     const hl = review ? (review.idx > 0 && [review.hist[review.idx - 1].from, review.hist[review.idx - 1].to].includes(name)) : !editing && highlight && highlight.includes(name);
     d.className = `sq ${(rr + ff) % 2 ? 'd' : 'l'}${(name === selected && !editing && !review) || picked ? ' sel' : ''}${hl ? ' hl' : ''}`;
     d.dataset.sq = name;
-    if (p) d.innerHTML = `<span class="p ${p.c}">${GLYPH[p.c + p.t]}</span>`;
-    if (dests.has(name)) {
-      const k = kindOf(dests.get(name));
-      d.insertAdjacentHTML('beforeend', `<span class="dot" style="${k ? `background:var(--${k});opacity:.85` : ''}"></span>`);
-    }
-    if (f === 0) d.insertAdjacentHTML('beforeend', `<span class="coord">${8 - rr}</span>`);
+    if (p) d.innerHTML = `<span class="pc ${p.c}${p.t}"></span>`;
+    if (dests.has(name)) d.insertAdjacentHTML('beforeend', `<span class="dot${p ? ' ring' : ''}"></span>`);
+    if (f === 0) d.insertAdjacentHTML('beforeend', `<span class="coord rk">${8 - rr}</span>`);
+    if (r === 7) d.insertAdjacentHTML('beforeend', `<span class="coord fl">${'abcdefgh'[ff]}</span>`);
     d.onclick = () => (editing ? onEditSquare(rr * 8 + ff) : onSquare(name));
     b.appendChild(d);
   }
@@ -3579,7 +3591,7 @@ function renderStatus() {
   if (info.gameOver === 'checkmate') t = `Checkmate &mdash; ${side === 'White' ? 'Black' : 'White'} wins`;
   else if (info.gameOver) t = `Game over: ${info.gameOver}`;
   else if (info.position.inCheck) t += ' &mdash; <b class="bad">in check</b>';
-  if (info.gameOver && chess.history().length) t += ' &middot; <button type="button" id="reviewnow">📊 Review this game</button>';
+  if (info.gameOver && chess.history().length) t += ' &middot; <button type="button" id="reviewnow" class="primary">Review this game</button>';
   $('status').innerHTML = t;
   $('reviewnow')?.addEventListener('click', startReview);
 }
@@ -3590,32 +3602,39 @@ function renderAware() {
   const el = $('aware');
   if (editing) { el.hidden = true; return; }
   el.hidden = false;
-  const p = info.position, c = info.counts, you = p.turn === 'w' ? 'White' : 'Black';
+  const p = info.position, c = info.counts;
   if (info.gameOver) { el.innerHTML = '<h2>Look around</h2><div class="mute">Game over.</div>'; return; }
-  const sign = p.material.diff > 0 ? `+${p.material.diff}` : p.material.diff;
+  // the analysis is from the mover's side; when it is their move, swap it round so "your" always means you
+  const mine = myTurn();
+  const me = mine ? { attacked: p.yourPiecesAttacked, pins: p.yourPins, loose: p.yourLoose } : { attacked: p.theirPiecesAttackable, pins: p.theirPins, loose: p.theirLoose };
+  const them = mine ? { attacked: p.theirPiecesAttackable, pins: p.theirPins, loose: p.theirLoose } : { attacked: p.yourPiecesAttacked, pins: p.yourPins, loose: p.yourLoose };
+  const mat = mine ? p.material : { you: p.material.them, them: p.material.you, diff: -p.material.diff };
+  const sign = mat.diff > 0 ? `+${mat.diff}` : mat.diff;
+  const pts = (n) => `about ${n} pt${n > 1 ? 's' : ''}`;
   const danger = [];
-  if (p.theyThreatenMate) danger.push('<b class="bad">They threaten checkmate in 1 if you pass.</b>');
-  for (const x of p.yourPiecesAttacked) danger.push(`Your ${x.piece} on <b>${x.sq}</b> can be won (about ${x.loss} pt${x.loss > 1 ? 's' : ''}).`);
-  for (const x of p.yourPins) danger.push(`Your ${x.piece} on ${x.sq} is pinned to your king by ${x.by}.`);
+  if (mine && p.theyThreatenMate) danger.push('<span class="bad">They threaten checkmate in 1 if you pass.</span>');
+  if (!mine && c.mates) danger.push('<span class="bad">They have checkmate in 1.</span>');
+  for (const x of me.attacked) danger.push(`Your ${x.piece} on <b>${x.sq}</b> can be won (${pts(x.loss)}).`);
+  for (const x of me.pins) danger.push(`Your ${x.piece} on <b>${x.sq}</b> is pinned to your king by ${x.by}.`);
   const chances = [];
-  for (const x of p.theirPiecesAttackable) chances.push(`Their ${x.piece} on <b>${x.sq}</b> is attackable (about ${x.loss} pt${x.loss > 1 ? 's' : ''}).`);
-  for (const x of p.theirPins) chances.push(`Their ${x.piece} on ${x.sq} is pinned to their king by ${x.by}.`);
-  for (const x of p.theirLoose) chances.push(`Loose (undefended): their ${x}.`);
-  const own = p.yourLoose.map((x) => `Your ${x} is undefended.`);
+  for (const x of them.attacked) chances.push(`Their ${x.piece} on <b>${x.sq}</b> can be won (${pts(x.loss)}).`);
+  for (const x of them.pins) chances.push(`Their ${x.piece} on <b>${x.sq}</b> is pinned to their king by ${x.by}.`);
+  for (const x of them.loose) chances.push(`Their ${x} is undefended.`);
+  const own = me.loose.map((x) => `Your ${x} is undefended.`);
   const open = [];
-  if (p.opening) {
+  if (mine && p.opening) {
     if (p.opening.undeveloped.length) open.push(`Still at home: ${p.opening.undeveloped.join(', ')}`);
     open.push(p.opening.castlingRights ? 'You can still castle.' : 'Castling rights are gone.');
   }
   const themes = [['Checkmate', c.mates], ['Checks', c.checks], ['Captures', c.captures], ['Threats', c.threats], ['Discoveries', c.discoveries], ['Forks', c.forks], ['Promotions', c.promotions], ['Castling', c.castles]];
-  el.innerHTML = `<h2>Look around &mdash; ${you}</h2>
-   <div>Material: ${p.material.you} vs ${p.material.them} (<b class="${p.material.diff < 0 ? 'bad' : p.material.diff > 0 ? 'good' : ''}">${sign}</b>) &middot; ${c.total} legal moves${p.theirChecks ? ` &middot; they have ${p.theirChecks} check${p.theirChecks > 1 ? 's' : ''} available` : ''}</div>
-   ${danger.length ? `<h2 style="margin-top:10px">Watch out</h2>${list(danger, 'bad')}` : ''}
-   ${own.length ? `<h2>Soft spots</h2>${list(own)}` : ''}
-   ${chances.length ? `<h2>Opportunities in their camp</h2>${list(chances)}` : ''}
-   ${open.length ? `<h2>Opening checklist</h2>${list(open)}` : ''}
-   <h2>Ideas available this move</h2>
-   <div class="mute" style="font-size:13px">${themes.filter(([, n]) => n).map(([name, n]) => `${name}: ${n}`).join(' &middot; ') || 'No tactics on the board &mdash; quiet position.'}</div>`;
+  const side = sideName(mine ? p.turn : (p.turn === 'w' ? 'b' : 'w'));
+  el.innerHTML = `<h2>Look around <span class="sub">${side}${mine ? '' : ', waiting for their move'}</span></h2>
+   <div class="kv"><span>Material ${mat.you} vs ${mat.them} ${mat.diff ? `<b class="${mat.diff < 0 ? 'bad' : 'good'}">${sign}</b>` : '<span class="mute">(level)</span>'}</span>${mine ? `<span>${c.total} legal moves</span>` : ''}${mine && p.theirChecks ? `<span>They have ${p.theirChecks} check${p.theirChecks > 1 ? 's' : ''} available</span>` : ''}</div>
+   ${danger.length ? `<h3>Watch out</h3>${list(danger)}` : ''}
+   ${own.length ? `<h3>Soft spots</h3>${list(own)}` : ''}
+   ${chances.length ? `<h3>Opportunities</h3>${list(chances)}` : ''}
+   ${open.length ? `<h3>Opening checklist</h3>${list(open)}` : ''}
+   ${mine ? `<h3>Ideas this move</h3><div class="small mute">${themes.filter(([, n]) => n).map(([name, n]) => `${name} ${n}`).join(' &middot; ') || 'No tactics on the board, a quiet position.'}</div>` : ''}`;
 }
 
 const matchesFilter = (m, f) => (f === 'engine' ? enginePick(m) >= 0 : f === 'plan' ? planPick(m) >= 0 : m.tags.some((t) => t.kind === f));
@@ -3626,15 +3645,16 @@ function renderMoves() {
   el.hidden = false;
   if (info.gameOver) { el.innerHTML = ''; return; }
   if (settings.level === '1') { el.innerHTML = '<h2>Moves</h2><div class="mute">The move list is hidden. Switch "Move list" in Settings to see it.</div>'; return; }
+  if (!myTurn()) { el.innerHTML = '<h2>Your moves</h2><div class="mute">Your legal moves are listed here when it is your turn.</div>'; return; }
   const present = THEMES.filter(([k]) => info.moves.some((m) => m.tags.some((t) => t.kind === k)));
   const hasEngine = info.moves.some((m) => enginePick(m) >= 0);
   const hasPlan = info.moves.some((m) => planPick(m) >= 0);
   if (filter === 'plan' && !hasPlan) filter = null; // the book move was played; show everything again
-  let html = `<h2>All ${info.moves.length} legal moves</h2><div class="themes">
-    ${hasPlan ? `<span class="chip k-plan${filter && filter !== 'plan' ? ' off' : ''}" data-f="plan">📖 Plan move</span>` : ''}
-    ${hasEngine ? `<span class="chip k-engine${filter && filter !== 'engine' ? ' off' : ''}" data-f="engine">★ Engine picks</span>` : ''}
+  let html = `<h2>Your moves <span class="sub">${info.moves.length} legal</span></h2><div class="themes">
+    ${hasPlan ? `<span class="chip k-plan${filter && filter !== 'plan' ? ' off' : ''}" data-f="plan">Book move</span>` : ''}
+    ${hasEngine ? `<span class="chip k-engine${filter && filter !== 'engine' ? ' off' : ''}" data-f="engine">Engine picks</span>` : ''}
     ${present.map(([k, n]) => `<span class="chip k-${k}${filter && filter !== k ? ' off' : ''}" data-f="${k}">${n}</span>`).join('')}
-    ${filter ? '<span class="chip" data-f="" style="--c:#667">show all</span>' : ''}</div>`;
+    ${filter ? '<span class="chip" data-f="">Show all</span>' : ''}</div>`;
   const groups = {};
   for (const m of info.moves) if (!filter || matchesFilter(m, filter)) (groups[m.piece] ||= []).push(m);
   for (const k of ['k', 'q', 'r', 'b', 'n', 'p']) {
@@ -3643,11 +3663,11 @@ function renderMoves() {
     for (const m of groups[k]) {
       const idx = info.moves.indexOf(m);
       const pick = enginePick(m);
-      const star = (planPick(m) >= 0 ? '<span class="chip k-plan">📖 Plan</span>' : '') + (pick >= 0 ? `<span class="chip k-engine">★ Engine #${pick + 1}</span>` : '');
+      const star = (planPick(m) >= 0 ? '<span class="chip k-plan">Book</span>' : '') + (pick >= 0 ? `<span class="chip k-engine">Engine ${pick + 1}</span>` : '');
       const chips = m.tags.map((t) => `<span class="chip k-${t.kind}" title="${esc(t.text)}">${esc(t.text)}</span>`).join('');
       let verdict = '';
-      if (settings.warn && m.net !== null) verdict = m.net > 0 ? ' <span class="good">(wins material)</span>' : m.net === 0 ? ' <span class="mute">(even trade)</span>' : '';
-      const warns = settings.warn ? m.warn.map((w) => `<span class="chip warn">⚠ ${esc(w)}</span>`).join('') : '';
+      if (settings.warn && m.net !== null) verdict = m.net > 0 ? '<span class="good small">wins material</span>' : m.net === 0 ? '<span class="mute small">even trade</span>' : '';
+      const warns = settings.warn ? m.warn.map((w) => `<span class="chip warn">${esc(w)}</span>`).join('') : '';
       html += `<div class="mv" data-i="${idx}"><b>${esc(m.san)}</b>${star}${chips}${verdict}${warns}</div>`;
     }
   }
@@ -3662,8 +3682,11 @@ function renderMoves() {
 const START_GRID = gridOf(new Chess(START_FEN));
 
 function buildPalette() {
-  const tools = [['hand', '✋ Move'], ...['w', 'b'].flatMap((c) => ['k', 'q', 'r', 'b', 'n', 'p'].map((t) => [c + t, GLYPH[c + t]])), ['x', '✕']];
-  $('palette').innerHTML = tools.map(([k, label]) => `<button type="button" data-t="${k}" class="${k[0] === 'w' || k[0] === 'b' ? k[0] : ''}${k === editTool ? ' on' : ''}" aria-label="${k}">${label}</button>`).join('');
+  const tools = [['hand', 'Move'], ...['w', 'b'].flatMap((c) => ['k', 'q', 'r', 'b', 'n', 'p'].map((t) => [c + t, ''])), ['x', 'Erase']];
+  const names = { k: 'king', q: 'queen', r: 'rook', b: 'bishop', n: 'knight', p: 'pawn' };
+  $('palette').innerHTML = tools.map(([k, label]) => (label
+    ? `<button type="button" data-t="${k}" class="txt${k === editTool ? ' on' : ''}">${label}</button>`
+    : `<button type="button" data-t="${k}" class="${k === editTool ? 'on' : ''}" aria-label="${k[0] === 'w' ? 'White' : 'Black'} ${names[k[1]]}"><span class="pc ${k}"></span></button>`)).join('');
   $('palette').querySelectorAll('button').forEach((b) => { b.onclick = () => { editTool = b.dataset.t; handFrom = null; buildPalette(); renderBoard(); }; });
 }
 
@@ -3735,7 +3758,7 @@ function playTyped(txt) {
 $('moveform').onsubmit = (e) => {
   e.preventDefault();
   let txt = $('mvin').value.trim();
-  if (!txt && speedMode() && chess.turn() === mySide()) txt = suggestion()?.san || '';
+  if (!txt && speedMode() && myTurn()) txt = suggestion()?.san || '';
   if (!txt) return;
   if (!playTyped(txt)) {
     say(chess.isGameOver() ? 'The game is over.' : `"${txt}" is not a legal move here. Try e4, Nf3, exd5, O-O or e2e4.`);
@@ -3749,7 +3772,9 @@ buildPlaystylePicker();
 if (/(^|\.)github\.io$|^localhost$|^127\.0\.0\.1$/.test(location.hostname)) $('getext').hidden = false;
 doc.querySelectorAll('#modes button').forEach((b) => { b.onclick = () => chooseMode(b.dataset.mode); });
 applyMode();
-if (currentOpening()) flipped = currentOpening().side === 'b';
+if (!['w', 'b', 'both'].includes(settings.side)) settings.side = 'w';
+flipped = mySide() === 'b' && !bothSides();
+doc.querySelectorAll('#sidebar button').forEach((b) => { b.onclick = () => chooseSide(b.dataset.side); });
 $('playstyle').onchange = (e) => choosePlaystyle(e.target.value);
 $('level').value = settings.level; $('warn').checked = settings.warn;
 $('reviewtime').value = settings.reviewTime;

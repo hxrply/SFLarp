@@ -5,6 +5,7 @@ A pocket chess helper: every legal move explained, plus Stockfish's best lines.
 **Live:** https://hxrply.github.io/SFLarp/
 
 ## What it does
+- **Playing as** – choose White or Black above the board and SFLarp shows best moves, arrows and your move list only on your turns; on the other side's turn it just waits for you to enter their move. *Both* shows them for whoever is to move.
 - **Engine suggestions** – Stockfish 19 (in your browser, nothing is sent anywhere) shows its top 1–5 lines with scores, draws arrows on the board and stars its picks in the move list.
 - **Look around** – your hanging/loose pieces, pins, mate threats, targets in their camp, opening checklist.
 - **All legal moves**, grouped by piece (never ranked), tagged: check, capture, threat, fork, discovery, defence, development, castling, promotion. Optional blunder warnings.
@@ -52,4 +53,5 @@ See [NOTES.md](NOTES.md) for how Stockfish works and how the awareness layer dif
 
 ## Third-party code
 - `vendor/chess.js` – [chess.js](https://github.com/jhlywa/chess.js) 1.0.0-beta.8 (BSD-2, `vendor/chess.js.LICENSE`).
+- `vendor/pieces/` – the "cburnett" chess piece images by Colin M.L. Burnett (GPLv2+), taken from the [chessground](https://github.com/lichess-org/chessground) package.
 - `vendor/stockfish/` – [Stockfish.js](https://github.com/nmrugg/stockfish.js) 19, built from [Stockfish](https://github.com/official-stockfish/Stockfish): the lite single-threaded WebAssembly build, plus the pure-JavaScript (asm.js) build used automatically when a host blocks WebAssembly or the `.wasm` is missing. **GPL-3.0**, see `vendor/stockfish/Copying.txt`.

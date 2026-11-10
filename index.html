@@ -6,7 +6,7 @@
 <title>SFLarp</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <meta name="description" content="SFLarp: a chess helper with Stockfish's best lines, every legal move explained, and a board editor for any position.">
-<meta name="theme-color" content="#1f2430">
+<meta name="theme-color" content="#131518">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -14,143 +14,220 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon-192.png" type="image/png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600;700&family=Onest:wght@400;500;600;700&display=swap">
 <style>
-:root{color-scheme:dark;--bg:#1f2430;--card:#2a3040;--ink:#e8ebf2;--mute:#9aa3b5;--light:#e9d9b8;--dark:#a67d52;--sel:#f6e05e;
---capture:#e5645c;--check:#f0a23b;--threat:#d98cf0;--fork:#ff7ab6;--discover:#b79cff;--defend:#5ac98f;--develop:#5aa9e6;--center:#8fd0d0;--castle:#9bb0ff;--promo:#ffd166;--mate:#ff4d4d;--engine:#5ac98f;--plan:#f0b429;--warn:#ff8a80}
+:root{color-scheme:dark;
+/* layout: one header row, board column on the left, reading column on the right; a single calm surface colour, colour only for meaning */
+--bg:#131518;--surface:#1b1e23;--raised:#252a31;--hover:#2e343d;--line:#2f353e;--ink:#e8eaed;--mute:#8f97a3;
+--accent:#5dbb8a;--accent-ink:#0d1a13;--plan:#deb04f;--them:#b3a4ee;--warn:#ee766c;--good:#6fc79a;
+--light:#ecdcbf;--dark:#b28a62;--mark:rgba(255,213,74,.5);
+--capture:#e5645c;--check:#f0a23b;--threat:#c98ae6;--fork:#f27aae;--discover:#a894f5;--defend:#5dbb8a;--develop:#6aa9e0;--center:#7cc7c7;--castle:#8fa5f5;--promo:#e6c35c;--mate:#f25555;--engine:#5dbb8a;
+--ui:'Onest',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;--mono:'JetBrains Mono',ui-monospace,'SF Mono',Menlo,Consolas,monospace}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
-body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 system-ui,sans-serif;padding-block:12px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
-:focus-visible{outline:2px solid var(--sel);outline-offset:2px}
-main{max-width:980px;margin:0 auto;display:grid;gap:12px;grid-template-columns:minmax(0,1fr)}
-@media(min-width:820px){main{grid-template-columns:minmax(0,460px) minmax(0,1fr);align-items:start}}
-h1{font-size:18px;margin:0 0 4px}h2{font-size:14px;margin:0 0 6px;color:var(--mute);text-transform:uppercase;letter-spacing:.05em}
-.card{background:var(--card);border-radius:12px;padding:12px;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:14.5px/1.45 var(--ui);padding-block:14px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));-webkit-font-smoothing:antialiased}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+a{color:#9db4f5}
+main{max-width:1020px;margin:0 auto;display:grid;gap:14px;grid-template-columns:minmax(0,1fr)}
+@media(min-width:860px){main{grid-template-columns:minmax(0,470px) minmax(0,1fr);align-items:start}.top{grid-column:1/-1}}
+.col{display:grid;gap:14px;align-content:start;min-width:0}
+.top{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between}
+.brand{display:flex;align-items:center;gap:8px;font-size:19px;font-weight:700;letter-spacing:-.01em}
+.brand .pc{position:static;width:30px;height:30px;flex:none}
+h2{font-size:15px;font-weight:650;margin:0 0 8px;letter-spacing:-.005em}
+h3{font-size:11.5px;font-weight:600;margin:12px 0 4px;color:var(--mute);text-transform:uppercase;letter-spacing:.07em}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;min-width:0}
+.sub{font-weight:400;color:var(--mute);font-size:13px}
+.mute{color:var(--mute)}.bad{color:var(--warn)}.good{color:var(--good)}.small{font-size:12.5px}
+b,.san{font-family:var(--mono);font-weight:600;font-size:.95em}
+h2 b,.brand b{font-family:inherit;font-size:inherit}
+
+/* controls */
+button,select,textarea,input{font:inherit;color:var(--ink)}
+button{cursor:pointer;background:var(--raised);border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:13.5px;font-weight:500;transition:background .12s}
+button:hover{background:var(--hover)}
+button.primary,button.on.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:650}
+button.primary:hover{filter:brightness(1.07)}
+button.on{background:#39424f;border-color:#4a5565}
+select,input[type=text],#mvin,textarea{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 10px}
+textarea{width:100%;font:12px/1.4 var(--mono)}
+input[type=checkbox]{accent-color:var(--accent);width:16px;height:16px}
+label{display:inline-flex;gap:8px;align-items:center}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center}
+.seg{display:inline-flex;padding:3px;gap:2px;background:var(--bg);border:1px solid var(--line);border-radius:10px}
+.seg button{border:0;background:none;padding:5px 12px;border-radius:7px;color:var(--mute);font-weight:550}
+.seg button:hover{color:var(--ink);background:none}
+.seg button.on{background:var(--raised);color:var(--ink);box-shadow:0 0 0 1px var(--line)}
+details>summary{cursor:pointer;color:var(--mute);font-size:13.5px}
+details>summary:hover{color:var(--ink)}
+
+/* board */
+.boardbar{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between;margin-bottom:10px}
+.boardbar .seg button{padding:4px 10px;font-size:13px}
+#status{font-size:13.5px;color:var(--mute)}#status button{margin-left:6px}
 #boardwrap{position:relative}
-#board{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));grid-template-rows:repeat(8,minmax(0,1fr));max-width:100%;aspect-ratio:1;border-radius:8px;overflow:hidden;user-select:none;touch-action:manipulation}
+#board{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));grid-template-rows:repeat(8,minmax(0,1fr));max-width:100%;aspect-ratio:1;border-radius:6px;overflow:hidden;user-select:none;touch-action:manipulation}
 #arrows{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
-.sq{position:relative;min-width:0;min-height:0;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:min(9vw,46px);cursor:pointer;line-height:1}
-.sq.l{background:var(--light)}.sq.d{background:var(--dark)}
-.sq .p{color:#000;text-shadow:0 0 2px #fff6}.sq .p.w{color:#fff;text-shadow:0 0 2px #000,0 0 1px #000}
-.sq.sel{background:var(--sel)!important}.sq.hl{outline:3px solid var(--sel);outline-offset:-3px}
-.sq .dot{position:absolute;width:30%;height:30%;border-radius:50%;background:#0006}
-.sq .coord{position:absolute;left:2px;top:0;font-size:9px;color:#0008}
-.row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
-button,select,textarea,input{font:inherit;color:var(--ink);background:#3a4258;border:0;border-radius:8px;padding:7px 11px}
-button{cursor:pointer}button:active{background:#4a5470}
-button.on{background:#566190}
-textarea{width:100%;font-size:12px}
-#mvin{flex:1;min-width:0}
+.sq{position:relative;min-width:0;min-height:0;overflow:hidden;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.sq.l{background-color:var(--light)}.sq.d{background-color:var(--dark)}
+.sq.hl{background-image:linear-gradient(var(--mark),var(--mark))}
+.sq.sel{background-image:linear-gradient(rgba(255,213,74,.78),rgba(255,213,74,.78))}
+.pc{position:absolute;inset:0;background-size:100% 100%;background-repeat:no-repeat}
+.sq .dot{position:relative;width:28%;height:28%;border-radius:50%;background:rgba(19,21,24,.3)}
+.sq .dot.ring{width:88%;height:88%;background:none;border:4px solid rgba(19,21,24,.3)}
+.sq .coord{position:absolute;font:600 9.5px/1 var(--mono);pointer-events:none}
+.sq .coord.rk{left:3px;top:3px}.sq .coord.fl{right:3px;bottom:2px}
+.sq.l .coord{color:var(--dark)}.sq.d .coord{color:var(--light)}
+#moveform{flex-wrap:nowrap}
+#mvin{flex:1;min-width:0;font-family:var(--mono);font-size:14px}
+#mvin::placeholder{font-family:var(--ui);color:#6c7480}
 #msg{min-height:1.2em;font-size:13px;color:var(--warn);margin-top:4px}
-.chip{display:inline-block;border-radius:999px;padding:1px 9px;font-size:12px;margin:2px 4px 2px 0;color:#14171f;background:var(--c,#aab)}
-.chip.warn{background:none;border:1px solid var(--warn);color:var(--warn)}
-.k-capture{--c:var(--capture)}.k-check{--c:var(--check)}.k-threat{--c:var(--threat)}.k-fork{--c:var(--fork)}.k-discover{--c:var(--discover)}.k-defend{--c:var(--defend)}.k-develop{--c:var(--develop)}.k-center{--c:var(--center)}.k-castle{--c:var(--castle)}.k-promo{--c:var(--promo)}.k-mate{--c:var(--mate)}.k-engine{--c:var(--engine);font-weight:600}.k-plan{--c:var(--plan);font-weight:600}
-.aw ul{margin:2px 0 8px;padding-left:18px}.aw li{margin:2px 0}.bad{color:var(--warn)}.good{color:var(--defend)}.mute{color:var(--mute)}
-.mv{padding:6px 8px;border-radius:8px;cursor:pointer}.mv:hover,.mv.act{background:#363e54}
-.mv b{display:inline-block;min-width:54px}
-.grp{margin:8px 0 2px;color:var(--mute);font-size:12px;text-transform:uppercase}
-.themes .chip{cursor:pointer;opacity:.9}.themes .chip.off{opacity:.35}
-label{display:inline-flex;gap:6px;align-items:center}
-details summary{cursor:pointer;color:var(--mute)}
-a{color:#9bb0ff}
-.eline{display:flex;gap:8px;align-items:baseline;padding:6px 8px;border-radius:8px;cursor:pointer}.eline:hover{background:#363e54}
-.eline .rank{color:var(--mute);width:1.2em;flex:none}
-.eline .ev{flex:none;min-width:4.2em;font-variant-numeric:tabular-nums;font-weight:600}
-.eline .pv{min-width:0;overflow-wrap:anywhere}
-.ev.pos{color:var(--defend)}.ev.neg{color:var(--warn)}
-.ptitle{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;margin:8px 0 2px;font-size:16px}
-.pstatus{margin:10px 0;padding:10px 12px;border-radius:8px;background:#232938;border-left:3px solid var(--plan)}
-.plabel{font-size:12px;color:var(--mute);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
-.pmove{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center;padding:4px 0}
-.pmove b{font-size:17px;min-width:3.2em}.pnote{flex:1 1 12em;min-width:0;font-size:13px}
-.pmove button{background:#5a4a1e;color:#ffe7a8}
-.pfit{font-size:13px;padding:4px 9px;margin:2px 0}
-.pplan ul{margin:6px 0 0;padding-left:18px}.pplan li{margin:3px 0;font-size:14px}
-#playstyle{max-width:100%}
-.modes{display:flex;gap:4px;margin:0 0 10px;padding:3px;background:#1b202b;border-radius:10px}
-.modes button{flex:1;padding:7px 4px;font-size:14px;background:none}
-.modes button.on{background:#566190;font-weight:600}
+#actions{margin-top:2px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+#actions button{padding:6px 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* tags */
+.chip{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);border-radius:999px;padding:1px 8px;font-size:12px;margin:2px 4px 2px 0;color:var(--ink);white-space:nowrap}
+.chip::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--c,var(--mute));flex:none}
+.chip.warn{border-color:rgba(238,118,108,.45);color:var(--warn);--c:var(--warn);white-space:normal}
+.k-capture{--c:var(--capture)}.k-check{--c:var(--check)}.k-threat{--c:var(--threat)}.k-fork{--c:var(--fork)}.k-discover{--c:var(--discover)}.k-defend{--c:var(--defend)}.k-develop{--c:var(--develop)}.k-center{--c:var(--center)}.k-castle{--c:var(--castle)}.k-promo{--c:var(--promo)}.k-mate{--c:var(--mate)}
+.k-engine{--c:var(--engine);border-color:rgba(93,187,138,.5);color:var(--good)}.k-plan{--c:var(--plan);border-color:rgba(222,176,79,.5);color:var(--plan)}
+.themes{margin-bottom:4px}.themes .chip{cursor:pointer}.themes .chip.off{opacity:.4}
+
+/* look around + move list */
+.aw ul{margin:2px 0 4px;padding-left:18px}.aw li{margin:3px 0}
+.kv{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13.5px}
+.mv{display:flex;flex-wrap:wrap;align-items:center;gap:0 2px;padding:5px 8px;margin:0 -8px;border-radius:8px;cursor:pointer}.mv:hover{background:var(--raised)}
+.mv>b{min-width:58px}
+.grp{margin:10px 0 2px;color:var(--mute);font-size:11.5px;font-weight:600;text-transform:uppercase;letter-spacing:.07em}
+
+/* engine */
+.eline{display:flex;gap:10px;align-items:baseline;padding:6px 8px;margin:0 -8px;border-radius:8px;cursor:pointer}.eline:hover{background:var(--raised)}
+.eline .rank{color:var(--mute);width:1em;flex:none;font-size:12px}
+.eline .ev{flex:none;min-width:3.8em;font:600 13.5px var(--mono);font-variant-numeric:tabular-nums}
+.eline .pv{min-width:0;overflow-wrap:anywhere;font-family:var(--mono);font-size:13px;color:var(--mute)}.eline .pv b{color:var(--ink);font-size:14px}
+.ev.pos{color:var(--good)}.ev.neg{color:var(--warn)}
+.foot{font-size:12px;color:var(--mute);margin-top:8px}
+
+/* editor */
+.palette{display:flex;flex-wrap:wrap;gap:4px;margin:8px 0}
+.palette button{position:relative;width:40px;height:40px;padding:0}
+.palette button.txt{width:auto;padding:0 12px}
+.palette button.on{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.palette .pc{inset:3px}
+
+/* playstyle */
+#playstyle{max-width:100%;min-width:0;flex:1 1 12em}
+.ptitle{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;margin:12px 0 2px;font-size:15.5px;font-weight:650}
+.pstatus{margin:10px 0;padding:10px 12px;border-radius:10px;background:var(--bg);border:1px solid var(--line)}
+.plabel{font-size:11.5px;font-weight:600;color:var(--mute);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px}
+.pmove{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center;padding:3px 0}
+.pmove>b{font-size:17px;min-width:3.2em;color:var(--plan)}.pnote{flex:1 1 12em;min-width:0;font-size:13.5px}
+.pfit{font-size:13px;padding:3px 9px;margin:2px 0}
+.pplan ul{margin:6px 0 0;padding-left:18px}.pplan li{margin:3px 0}
+
+/* fast modes */
 .speedhide{display:none!important}
-#speed{margin-top:10px;padding:12px 14px;border-radius:10px;background:#1b202b;border:1px solid #3a4258}
-.slabel{font-size:12px;color:var(--mute);text-transform:uppercase;letter-spacing:.05em}
-.sbig{font-size:34px;font-weight:700;line-height:1.15;margin:2px 0 4px;overflow-wrap:anywhere}
-.sbig .ssrc{font-size:14px;font-weight:600;color:var(--engine);vertical-align:middle}
-.sbig.them,.them{color:#c9b8ff}
-.sthen{font-size:16px;margin:2px 0}
+#speed{margin-top:10px;padding:12px 14px;border-radius:10px;background:var(--bg);border:1px solid var(--line)}
+.slabel{font-size:11.5px;font-weight:600;color:var(--mute);text-transform:uppercase;letter-spacing:.07em}
+.sbig{font:700 34px/1.15 var(--mono);margin:2px 0 4px;overflow-wrap:anywhere}
+.sbig.wait{font:600 20px/1.3 var(--ui);color:var(--mute)}
+.sbig .ssrc{font:600 13px var(--ui);color:var(--good);vertical-align:middle;margin-left:4px}
+.sbig .ssrc.book{color:var(--plan)}
+.sbig.them,.them{color:var(--them)}
+.sthen{font-size:15px;margin:2px 0}
 .spre{font-size:13px;color:var(--plan);margin-top:4px}
-.sdanger{font-size:14px;color:var(--warn);font-weight:600;margin-top:4px}
+.sdanger{font-size:13.5px;color:var(--warn);font-weight:600;margin-top:4px}
 .shint{font-size:12px;color:var(--mute);margin-top:6px}
-body.reviewing #engine,body.reviewing #aware,body.reviewing #moves,body.reviewing #speed,body.reviewing #plancard,body.reviewing #moveform,body.reviewing #editor{display:none!important}
-.rhead{display:flex;justify-content:space-between;align-items:center;gap:8px}
-.racc{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:6px 0 10px}
-.racc>div{display:flex;flex-direction:column;padding:8px 10px;border-radius:8px;background:#1b202b}
-.rbig{font-size:28px;font-weight:700;font-variant-numeric:tabular-nums}
+
+/* review */
+body.reviewing #engine,body.reviewing #aware,body.reviewing #moves,body.reviewing #speed,body.reviewing #plancard,body.reviewing #moveform,body.reviewing #editor,body.reviewing #sidebar{display:none!important}
+.rhead{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}.rhead h2{margin:0}
+.racc{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 10px}
+.racc>div{display:flex;flex-direction:column;padding:8px 12px;border-radius:10px;background:var(--bg);border:1px solid var(--line)}
+.rbig{font:700 26px var(--mono);font-variant-numeric:tabular-nums}
 .rgraph{display:block;width:100%;height:84px;border-radius:6px;cursor:pointer}
 .rmarks{position:relative;height:8px;margin-bottom:6px}.rmarks span{position:absolute;top:2px;width:6px;height:6px;margin-left:-3px;border-radius:50%}
 .rnav{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:8px 0}
-.rnav button{font-size:18px;padding:8px 0}
-.rdetail{min-height:3.2em;padding:8px 10px;border-radius:8px;background:#1b202b;margin-bottom:8px}
-.rlabel{display:inline-block;border-radius:999px;padding:0 8px;font-size:12px;font-weight:600;color:#14171f;background:var(--c)}
-.rkeys{font-size:13px;margin-bottom:8px}.rkeys button{padding:3px 8px;margin:2px 0;border-left:3px solid var(--c)}
-.rtab{width:100%;border-collapse:collapse;font-size:14px;margin-bottom:8px;font-variant-numeric:tabular-nums}
-.rtab th{font-size:12px;color:var(--mute);font-weight:600;text-align:center}.rtab th:first-child{text-align:left}
-.rtab td{padding:3px 4px;border-top:1px solid #343b4d;text-align:center}.rtab td:first-child{text-align:left}
-.rmoves{line-height:2.1;font-size:14px}
-.rmoves button{padding:1px 6px;font-size:14px;background:none;border-bottom:2px solid var(--c);border-radius:4px}
-.rmoves button.on{background:#566190}
-.rmoves sup{font-size:10px;margin-left:1px}
-.palette{display:flex;flex-wrap:wrap;gap:4px;margin:6px 0}
-.palette button{font-size:24px;line-height:1;padding:4px 9px;min-width:44px}
-.palette .w{color:#fff;text-shadow:0 0 2px #000}.palette .b{color:#111;background:#c9cfdc}
-.palette .b.on{background:#f6e05e}
+.rnav button{font:600 17px/1 var(--mono);padding:8px 0}
+.rdetail{min-height:3.2em;padding:8px 12px;border-radius:10px;background:var(--bg);border:1px solid var(--line);margin-bottom:8px}
+.rlabel{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:600;color:var(--c)}
+.rlabel::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--c)}
+.rkeys{font-size:13px;margin-bottom:8px}.rkeys button{padding:2px 8px;margin:2px 0;font-family:var(--mono);border-color:var(--c)}
+.rtab{width:100%;border-collapse:collapse;font-size:13.5px;margin-bottom:8px;font-variant-numeric:tabular-nums}
+.rtab th{font-size:11.5px;color:var(--mute);font-weight:600;text-align:center;text-transform:uppercase;letter-spacing:.07em}.rtab th:first-child{text-align:left}
+.rtab td{padding:4px;border-top:1px solid var(--line);text-align:center}.rtab td:first-child{text-align:left}
+.rmoves{line-height:2.1;font-size:13.5px}
+.rmoves button{padding:1px 6px;font:500 13.5px var(--mono);background:none;border:0;border-bottom:2px solid var(--c);border-radius:4px}
+.rmoves button.on{background:var(--hover)}
+.rmoves i{font-style:normal;color:var(--c);font-weight:700}
+progress{accent-color:var(--accent)}
+.settings .row{margin-top:8px}
+.pc.wk{background-image:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0NSIgaGVpZ2h0PSI0NSI+PGcgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIiBzdHJva2U9IiMwMDAiIHN0cm9rZS13aWR0aD0iMS41IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwYXRoIGQ9Ik0yMi41IDExLjYzVjZNMjAgOGg1IiBzdHJva2UtbGluZWpvaW49Im1pdGVyIi8+PHBhdGggZD0iTTIyLjUgMjVzNC41LTcuNSAzLTEwLjVjMCAwLTEtMi41LTMtMi41cy0zIDIuNS0zIDIuNWMtMS41IDMgMyAxMC41IDMgMTAuNSIgZmlsbD0iI2ZmZiIgc3Ryb2tlLWxpbmVjYXA9ImJ1dHQiIHN0cm9rZS1saW5lam9pbj0ibWl0ZXIiLz48cGF0aCBkPSJNMTEuNSAzN2M1LjUgMy41IDE1LjUgMy41IDIxIDB2LTdzOS00LjUgNi0xMC41Yy00LTYuNS0xMy41LTMuNS0xNiA0VjI3di0zLjVjLTMuNS03LjUtMTMtMTAuNS0xNi00LTMgNiA1IDEwIDUgMTBWMzd6IiBmaWxsPSIjZmZmIi8+PHBhdGggZD0iTTExLjUgMzBjNS41LTMgMTUuNS0zIDIxIDBtLTIxIDMuNWM1LjUtMyAxNS41LTMgMjEgMG0tMjEgMy41YzUuNS0zIDE1LjUtMyAyMSAwIi8+PC9nPjwvc3ZnPg==")}
+.pc.wq{background-image:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0NSIgaGVpZ2h0PSI0NSI+PGcgZmlsbD0iI2ZmZiIgZmlsbC1ydWxlPSJldmVub2RkIiBzdHJva2U9IiMwMDAiIHN0cm9rZS13aWR0aD0iMS41IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwYXRoIGQ9Ik04IDEyYTIgMiAwIDEgMS00IDAgMiAyIDAgMSAxIDQgMHptMTYuNS00LjVhMiAyIDAgMSAxLTQgMCAyIDIgMCAxIDEgNCAwek00MSAxMmEyIDIgMCAxIDEtNCAwIDIgMiAwIDEgMSA0IDB6TTE2IDguNWEyIDIgMCAxIDEtNCAwIDIgMiAwIDEgMSA0IDB6TTMzIDlhMiAyIDAgMSAxLTQgMCAyIDIgMCAxIDEgNCAweiIvPjxwYXRoIGQ9Ik05IDI2YzguNS0xLjUgMjEtMS41IDI3IDBsMi0xMi03IDExVjExbC01LjUgMTMuNS0zLTE1LTMgMTUtNS41LTE0VjI1TDcgMTRsMiAxMnoiIHN0cm9rZS1saW5lY2FwPSJidXR0Ii8+PHBhdGggZD0iTTkgMjZjMCAyIDEuNSAyIDIuNSA0IDEgMS41IDEgMSAuNSAzLjUtMS41IDEtMS41IDIuNS0xLjUgMi41LTEuNSAxLjUuNSAyLjUuNSAyLjUgNi41IDEgMTYuNSAxIDIzIDAgMCAwIDEuNS0xIDAtMi41IDAgMCAuNS0xLjUtMS0yLjUtLjUtMi41LS41LTIgLjUtMy41IDEtMiAyLjUtMiAyLjUtNC04LjUtMS41LTE4LjUtMS41LTI3IDB6IiBzdHJva2UtbGluZWNhcD0iYnV0dCIvPjxwYXRoIGQ9Ik0xMS41IDMwYzMuNS0xIDE4LjUtMSAyMiAwTTEyIDMzLjVjNi0xIDE1LTEgMjEgMCIgZmlsbD0ibm9uZSIvPjwvZz48L3N2Zz4=")}
+.pc.wr{background-image:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0NSIgaGVpZ2h0PSI0NSI+PGcgZmlsbD0iI2ZmZiIgZmlsbC1ydWxlPSJldmVub2RkIiBzdHJva2U9IiMwMDAiIHN0cm9rZS13aWR0aD0iMS41IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwYXRoIGQ9Ik05IDM5aDI3di0zSDl2M3ptMy0zdi00aDIxdjRIMTJ6bS0xLTIyVjloNHYyaDVWOWg1djJoNVY5aDR2NSIgc3Ryb2tlLWxpbmVjYXA9ImJ1dHQiLz48cGF0aCBkPSJNMzQgMTRsLTMgM0gxNGwtMy0zIi8+PHBhdGggZD0iTTMxIDE3djEyLjVIMTRWMTciIHN0cm9rZS1saW5lY2FwPSJidXR0IiBzdHJva2UtbGluZWpvaW49Im1pdGVyIi8+PHBhdGggZD0iTTMxIDI5LjVsMS41IDIuNWgtMjBsMS41LTIuNSIvPjxwYXRoIGQ9Ik0xMSAxNGgyMyIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVqb2luPSJtaXRlciIvPjwvZz48L3N2Zz4=")}
+.pc.wb{background-image:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0NSIgaGVpZ2h0PSI0NSI+PGcgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIiBzdHJva2U9IiMwMDAiIHN0cm9rZS13aWR0aD0iMS41IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxnIGZpbGw9IiNmZmYiIHN0cm9rZS1saW5lY2FwPSJidXR0Ij48cGF0aCBkPSJNOSAzNmMzLjM5LS45NyAxMC4xMS40MyAxMy41LTIgMy4zOSAyLjQzIDEwLjExIDEuMDMgMTMuNSAyIDAgMCAxLjY1LjU0IDMgMi0uNjguOTctMS42NS45OS0zIC41LTMuMzktLjk3LTEwLjExLjQ2LTEzLjUtMS0zLjM5IDEuNDYtMTAuMTEuMDMtMTMuNSAxLTEuMzU0LjQ5LTIuMzIzLjQ3LTMtLjUgMS4zNTQtMS45NCAzLTIgMy0yeiIvPjxwYXRoIGQ9Ik0xNSAzMmMyLjUgMi41IDEyLjUgMi41IDE1IDAgLjUtMS41IDAtMiAwLTIgMC0yLjUtMi41LTQtMi41LTQgNS41LTEuNSA2LTExLjUtNS0xNS41LTExIDQtMTAuNSAxNC01IDE1LjUgMCAwLTIuNSAxLjUtMi41IDQgMCAwLS41LjUgMCAyeiIvPjxwYXRoIGQ9Ik0yNSA4YTIuNSAyLjUgMCAxIDEtNSAwIDIuNSAyLjUgMCAxIDEgNSAweiIvPjwvZz48cGF0aCBkPSJNMTcuNSAyNmgxME0xNSAzMGgxNW0tNy41LTE0LjV2NU0yMCAxOGg1IiBzdHJva2UtbGluZWpvaW49Im1pdGVyIi8+PC9nPjwvc3ZnPg==")}
+.pc.wn{background-image:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0NSIgaGVpZ2h0PSI0NSI+PGcgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIiBzdHJva2U9IiMwMDAiIHN0cm9rZS13aWR0aD0iMS41IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwYXRoIGQ9Ik0yMiAxMGMxMC41IDEgMTYuNSA4IDE2IDI5SDE1YzAtOSAxMC02LjUgOC0yMSIgZmlsbD0iI2ZmZiIvPjxwYXRoIGQ9Ik0yNCAxOGMuMzggMi45MS01LjU1IDcuMzctOCA5LTMgMi0yLjgyIDQuMzQtNSA0LTEuMDQyLS45NCAxLjQxLTMuMDQgMC0zLTEgMCAuMTkgMS4yMy0xIDItMSAwLTQuMDAzIDEtNC00IDAtMiA2LTEyIDYtMTJzMS44OS0xLjkgMi0zLjVjLS43My0uOTk0LS41LTItLjUtMyAxLTEgMyAyLjUgMyAyLjVoMnMuNzgtMS45OTIgMi41LTNjMSAwIDEgMyAxIDMiIGZpbGw9IiNmZmYiLz48cGF0aCBkPSJNOS41IDI1LjVhLjUuNSAwIDEgMS0xIDAgLjUuNSAwIDEgMSAxIDB6bTUuNDMzLTkuNzVhLjUgMS41IDMwIDEgMS0uODY2LS41LjUgMS41IDMwIDEgMSAuODY2LjV6IiBmaWxsPSIjMDAwIi8+PC9nPjwvc3ZnPg==")}
+.pc.wp{background-image:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0NSIgaGVpZ2h0PSI0NSI+PHBhdGggZD0iTTIyLjUgOWMtMi4yMSAwLTQgMS43OS00IDQgMCAuODkuMjkgMS43MS43OCAyLjM4QzE3LjMzIDE2LjUgMTYgMTguNTkgMTYgMjFjMCAyLjAzLjk0IDMuODQgMi40MSA1LjAzLTMgMS4wNi03LjQxIDUuNTUtNy40MSAxMy40N2gyM2MwLTcuOTItNC40MS0xMi40MS03LjQxLTEzLjQ3IDEuNDctMS4xOSAyLjQxLTMgMi40MS01LjAzIDAtMi40MS0xLjMzLTQuNS0zLjI4LTUuNjIuNDktLjY3Ljc4LTEuNDkuNzgtMi4zOCAwLTIuMjEtMS43OS00LTQtNHoiIGZpbGw9IiNmZmYiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjwvc3ZnPg==")}
+.pc.bk{background-image:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0NSIgaGVpZ2h0PSI0NSI+PGcgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIiBzdHJva2U9IiMwMDAiIHN0cm9rZS13aWR0aD0iMS41IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwYXRoIGQ9Ik0yMi41IDExLjYzVjYiIHN0cm9rZS1saW5lam9pbj0ibWl0ZXIiLz48cGF0aCBkPSJNMjIuNSAyNXM0LjUtNy41IDMtMTAuNWMwIDAtMS0yLjUtMy0yLjVzLTMgMi41LTMgMi41Yy0xLjUgMyAzIDEwLjUgMyAxMC41IiBmaWxsPSIjMDAwIiBzdHJva2UtbGluZWNhcD0iYnV0dCIgc3Ryb2tlLWxpbmVqb2luPSJtaXRlciIvPjxwYXRoIGQ9Ik0xMS41IDM3YzUuNSAzLjUgMTUuNSAzLjUgMjEgMHYtN3M5LTQuNSA2LTEwLjVjLTQtNi41LTEzLjUtMy41LTE2IDRWMjd2LTMuNWMtMy41LTcuNS0xMy0xMC41LTE2LTQtMyA2IDUgMTAgNSAxMFYzN3oiIGZpbGw9IiMwMDAiLz48cGF0aCBkPSJNMjAgOGg1IiBzdHJva2UtbGluZWpvaW49Im1pdGVyIi8+PHBhdGggZD0iTTMyIDI5LjVzOC41LTQgNi4wMy05LjY1QzM0LjE1IDE0IDI1IDE4IDIyLjUgMjQuNWwuMDEgMi4xLS4wMS0yLjFDMjAgMTggOS45MDYgMTQgNi45OTcgMTkuODVjLTIuNDk3IDUuNjUgNC44NTMgOSA0Ljg1MyA5IiBzdHJva2U9IiNlY2VjZWMiLz48cGF0aCBkPSJNMTEuNSAzMGM1LjUtMyAxNS41LTMgMjEgMG0tMjEgMy41YzUuNS0zIDE1LjUtMyAyMSAwbS0yMSAzLjVjNS41LTMgMTUuNS0zIDIxIDAiIHN0cm9rZT0iI2VjZWNlYyIvPjwvZz48L3N2Zz4=")}
+.pc.bq{background-image:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0NSIgaGVpZ2h0PSI0NSI+PGcgZmlsbC1ydWxlPSJldmVub2RkIiBzdHJva2U9IiMwMDAiIHN0cm9rZS13aWR0aD0iMS41IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxnIHN0cm9rZT0ibm9uZSI+PGNpcmNsZSBjeD0iNiIgY3k9IjEyIiByPSIyLjc1Ii8+PGNpcmNsZSBjeD0iMTQiIGN5PSI5IiByPSIyLjc1Ii8+PGNpcmNsZSBjeD0iMjIuNSIgY3k9IjgiIHI9IjIuNzUiLz48Y2lyY2xlIGN4PSIzMSIgY3k9IjkiIHI9IjIuNzUiLz48Y2lyY2xlIGN4PSIzOSIgY3k9IjEyIiByPSIyLjc1Ii8+PC9nPjxwYXRoIGQ9Ik05IDI2YzguNS0xLjUgMjEtMS41IDI3IDBsMi41LTEyLjVMMzEgMjVsLS4zLTE0LjEtNS4yIDEzLjYtMy0xNC41LTMgMTQuNS01LjItMTMuNkwxNCAyNSA2LjUgMTMuNSA5IDI2eiIgc3Ryb2tlLWxpbmVjYXA9ImJ1dHQiLz48cGF0aCBkPSJNOSAyNmMwIDIgMS41IDIgMi41IDQgMSAxLjUgMSAxIC41IDMuNS0xLjUgMS0xLjUgMi41LTEuNSAyLjUtMS41IDEuNS41IDIuNS41IDIuNSA2LjUgMSAxNi41IDEgMjMgMCAwIDAgMS41LTEgMC0yLjUgMCAwIC41LTEuNS0xLTIuNS0uNS0yLjUtLjUtMiAuNS0zLjUgMS0yIDIuNS0yIDIuNS00LTguNS0xLjUtMTguNS0xLjUtMjcgMHoiIHN0cm9rZS1saW5lY2FwPSJidXR0Ii8+PHBhdGggZD0iTTExIDM4LjVhMzUgMzUgMSAwIDAgMjMgMCIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9ImJ1dHQiLz48cGF0aCBkPSJNMTEgMjlhMzUgMzUgMSAwIDEgMjMgMG0tMjEuNSAyLjVoMjBtLTIxIDNhMzUgMzUgMSAwIDAgMjIgMG0tMjMgM2EzNSAzNSAxIDAgMCAyNCAwIiBmaWxsPSJub25lIiBzdHJva2U9IiNlY2VjZWMiLz48L2c+PC9zdmc+")}
+.pc.br{background-image:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0NSIgaGVpZ2h0PSI0NSI+PGcgZmlsbC1ydWxlPSJldmVub2RkIiBzdHJva2U9IiMwMDAiIHN0cm9rZS13aWR0aD0iMS41IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwYXRoIGQ9Ik05IDM5aDI3di0zSDl2M3ptMy41LTdsMS41LTIuNWgxN2wxLjUgMi41aC0yMHptLS41IDR2LTRoMjF2NEgxMnoiIHN0cm9rZS1saW5lY2FwPSJidXR0Ii8+PHBhdGggZD0iTTE0IDI5LjV2LTEzaDE3djEzSDE0eiIgc3Ryb2tlLWxpbmVjYXA9ImJ1dHQiIHN0cm9rZS1saW5lam9pbj0ibWl0ZXIiLz48cGF0aCBkPSJNMTQgMTYuNUwxMSAxNGgyM2wtMyAyLjVIMTR6TTExIDE0VjloNHYyaDVWOWg1djJoNVY5aDR2NUgxMXoiIHN0cm9rZS1saW5lY2FwPSJidXR0Ii8+PHBhdGggZD0iTTEyIDM1LjVoMjFtLTIwLTRoMTltLTE4LTJoMTdtLTE3LTEzaDE3TTExIDE0aDIzIiBmaWxsPSJub25lIiBzdHJva2U9IiNlY2VjZWMiIHN0cm9rZS13aWR0aD0iMSIgc3Ryb2tlLWxpbmVqb2luPSJtaXRlciIvPjwvZz48L3N2Zz4=")}
+.pc.bb{background-image:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0NSIgaGVpZ2h0PSI0NSI+PGcgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIiBzdHJva2U9IiMwMDAiIHN0cm9rZS13aWR0aD0iMS41IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxnIGZpbGw9IiMwMDAiIHN0cm9rZS1saW5lY2FwPSJidXR0Ij48cGF0aCBkPSJNOSAzNmMzLjM5LS45NyAxMC4xMS40MyAxMy41LTIgMy4zOSAyLjQzIDEwLjExIDEuMDMgMTMuNSAyIDAgMCAxLjY1LjU0IDMgMi0uNjguOTctMS42NS45OS0zIC41LTMuMzktLjk3LTEwLjExLjQ2LTEzLjUtMS0zLjM5IDEuNDYtMTAuMTEuMDMtMTMuNSAxLTEuMzU0LjQ5LTIuMzIzLjQ3LTMtLjUgMS4zNTQtMS45NCAzLTIgMy0yeiIvPjxwYXRoIGQ9Ik0xNSAzMmMyLjUgMi41IDEyLjUgMi41IDE1IDAgLjUtMS41IDAtMiAwLTIgMC0yLjUtMi41LTQtMi41LTQgNS41LTEuNSA2LTExLjUtNS0xNS41LTExIDQtMTAuNSAxNC01IDE1LjUgMCAwLTIuNSAxLjUtMi41IDQgMCAwLS41LjUgMCAyeiIvPjxwYXRoIGQ9Ik0yNSA4YTIuNSAyLjUgMCAxIDEtNSAwIDIuNSAyLjUgMCAxIDEgNSAweiIvPjwvZz48cGF0aCBkPSJNMTcuNSAyNmgxME0xNSAzMGgxNW0tNy41LTE0LjV2NU0yMCAxOGg1IiBzdHJva2U9IiNlY2VjZWMiIHN0cm9rZS1saW5lam9pbj0ibWl0ZXIiLz48L2c+PC9zdmc+")}
+.pc.bn{background-image:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0NSIgaGVpZ2h0PSI0NSI+PGcgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIiBzdHJva2U9IiMwMDAiIHN0cm9rZS13aWR0aD0iMS41IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwYXRoIGQ9Ik0yMiAxMGMxMC41IDEgMTYuNSA4IDE2IDI5SDE1YzAtOSAxMC02LjUgOC0yMSIgZmlsbD0iIzAwMCIvPjxwYXRoIGQ9Ik0yNCAxOGMuMzggMi45MS01LjU1IDcuMzctOCA5LTMgMi0yLjgyIDQuMzQtNSA0LTEuMDQyLS45NCAxLjQxLTMuMDQgMC0zLTEgMCAuMTkgMS4yMy0xIDItMSAwLTQuMDAzIDEtNC00IDAtMiA2LTEyIDYtMTJzMS44OS0xLjkgMi0zLjVjLS43My0uOTk0LS41LTItLjUtMyAxLTEgMyAyLjUgMyAyLjVoMnMuNzgtMS45OTIgMi41LTNjMSAwIDEgMyAxIDMiIGZpbGw9IiMwMDAiLz48cGF0aCBkPSJNOS41IDI1LjVhLjUuNSAwIDEgMS0xIDAgLjUuNSAwIDEgMSAxIDB6bTUuNDMzLTkuNzVhLjUgMS41IDMwIDEgMS0uODY2LS41LjUgMS41IDMwIDEgMSAuODY2LjV6IiBmaWxsPSIjZWNlY2VjIiBzdHJva2U9IiNlY2VjZWMiLz48cGF0aCBkPSJNMjQuNTUgMTAuNGwtLjQ1IDEuNDUuNS4xNWMzLjE1IDEgNS42NSAyLjQ5IDcuOSA2Ljc1UzM1Ljc1IDI5LjA2IDM1LjI1IDM5bC0uMDUuNWgyLjI1bC4wNS0uNWMuNS0xMC4wNi0uODgtMTYuODUtMy4yNS0yMS4zNC0yLjM3LTQuNDktNS43OS02LjY0LTkuMTktNy4xNmwtLjUxLS4xeiIgZmlsbD0iI2VjZWNlYyIgc3Ryb2tlPSJub25lIi8+PC9nPjwvc3ZnPg==")}
+.pc.bp{background-image:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0NSIgaGVpZ2h0PSI0NSI+PHBhdGggZD0iTTIyLjUgOWMtMi4yMSAwLTQgMS43OS00IDQgMCAuODkuMjkgMS43MS43OCAyLjM4QzE3LjMzIDE2LjUgMTYgMTguNTkgMTYgMjFjMCAyLjAzLjk0IDMuODQgMi40MSA1LjAzLTMgMS4wNi03LjQxIDUuNTUtNy40MSAxMy40N2gyM2MwLTcuOTItNC40MS0xMi40MS03LjQxLTEzLjQ3IDEuNDctMS4xOSAyLjQxLTMgMi40MS01LjAzIDAtMi40MS0xLjMzLTQuNS0zLjI4LTUuNjIuNDktLjY3Ljc4LTEuNDkuNzgtMi4zOCAwLTIuMjEtMS43OS00LTQtNHoiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjwvc3ZnPg==")}
 </style>
 </head>
 <body>
 <div id="poppedout" class="card" style="max-width:520px;margin:24px auto" hidden><h2>SFLarp is in a floating window</h2><p>It stays on top of your other windows. Close it, or press the button, to bring it back here.</p><button type="button" id="popback">Bring it back</button></div>
 <main>
- <section>
+ <header class="top">
+  <div class="brand"><span class="pc wn" aria-hidden="true"></span><h1 style="font:inherit;margin:0">SFLarp</h1></div>
+  <div class="seg" id="modes" role="group" aria-label="Game mode"><button type="button" data-mode="analysis">Analysis</button><button type="button" data-mode="blitz">Blitz 3 min</button><button type="button" data-mode="bullet">Bullet 1 min</button></div>
+ </header>
+ <section class="col">
   <div class="card">
-   <h1>♞ SFLarp</h1>
-   <div class="mute" style="font-size:13px;margin-bottom:8px">Every legal move explained, plus Stockfish's best lines. Play both sides' moves to track your game, or set up any position.</div>
-   <div class="modes" id="modes" role="group" aria-label="Game mode"><button type="button" data-mode="analysis">Analysis</button><button type="button" data-mode="blitz">Blitz 3 min</button><button type="button" data-mode="bullet">Bullet 1 min</button></div>
+   <div class="boardbar">
+    <div class="seg" id="sidebar" role="group" aria-label="Side you are playing"><button type="button" data-side="w">White</button><button type="button" data-side="b">Black</button><button type="button" data-side="both" title="Show best moves for whoever is to move">Both</button></div>
+    <div id="status"></div>
+   </div>
    <div id="boardwrap"><div id="board"></div><svg id="arrows" viewBox="0 0 8 8" aria-hidden="true"></svg></div>
    <div id="speed" hidden aria-live="polite"></div>
-   <div id="status" style="margin-top:8px"></div>
-   <form class="row" id="moveform" autocomplete="off"><input id="mvin" placeholder="Type a move: e4, Nf3, exd5, O-O" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go"><button type="submit">Play</button></form>
+   <form class="row" id="moveform" autocomplete="off"><input id="mvin" aria-label="Type a move" placeholder="Type a move: e4, Nf3, O-O" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go"><button type="submit" class="primary">Play</button></form>
    <div id="msg" role="status"></div>
    <div class="row" id="actions">
-    <button id="undo">↶ Undo</button><button id="flip">⇅ Flip</button><button id="edit">✎ Edit position</button><button id="new">New game</button><button id="reviewbtn">📊 Review game</button><button id="popout" title="Open SFLarp in a small window that floats on top">⧉ Pop out</button>
+    <button type="button" id="undo">Undo</button><button type="button" id="flip">Flip</button><button type="button" id="new">New game</button><button type="button" id="edit">Edit position</button><button type="button" id="reviewbtn">Review game</button><button type="button" id="popout" title="Open SFLarp in a small window that floats on top">Pop out</button>
    </div>
    <div id="editor" hidden>
-    <h2 style="margin-top:12px">Set up the position</h2>
-    <div class="mute" style="font-size:13px">Pick a piece, then tap squares to place it. <b>✋ Move</b> picks a piece up and drops it elsewhere; <b>✕</b> removes.</div>
+    <h3>Set up the position</h3>
+    <div class="mute small">Pick a piece, then tap squares to place it. Move picks a piece up and drops it elsewhere.</div>
     <div class="palette" id="palette"></div>
     <div class="row" style="margin-top:0">
      <label>Side to move <select id="editturn"><option value="w">White</option><option value="b">Black</option></select></label>
     </div>
     <div class="row">
-     <button id="eclear">Clear board</button><button id="estart">Start position</button><button id="ereset">Undo changes</button>
+     <button type="button" id="eclear">Clear board</button><button type="button" id="estart">Start position</button><button type="button" id="ereset">Undo changes</button>
     </div>
     <div class="row">
-     <button id="edone" class="on">✓ Done</button><button id="ecancel">Cancel</button>
+     <button type="button" id="edone" class="primary">Done</button><button type="button" id="ecancel">Cancel</button>
     </div>
    </div>
-   <details style="margin-top:8px"><summary>Load / copy position (FEN)</summary>
-    <textarea id="fen" rows="2"></textarea>
-    <div class="row"><button id="loadfen">Load FEN</button></div>
+   <details style="margin-top:10px"><summary>Load or copy position (FEN)</summary>
+    <textarea id="fen" rows="2" aria-label="FEN" style="margin-top:8px"></textarea>
+    <div class="row"><button type="button" id="loadfen">Load FEN</button></div>
    </details>
   </div>
-  <div class="card" id="review" style="margin-top:12px" hidden></div>
-  <div class="card" id="engine" style="margin-top:12px"></div>
+  <div class="card" id="review" hidden></div>
+  <div class="card" id="engine"></div>
  </section>
- <section style="display:grid;gap:12px;align-content:start">
+ <section class="col">
   <div class="card" id="plancard">
    <h2>Playstyle</h2>
-   <label for="playstyle" style="display:flex;gap:8px;flex-wrap:wrap">Opening to follow <select id="playstyle"></select></label>
+   <label for="playstyle" style="display:flex;flex-wrap:wrap"><span class="mute">Opening</span> <select id="playstyle"></select></label>
    <div id="planbody"></div>
   </div>
-  <div class="card">
-   <h2>Settings</h2>
-   <div class="row" style="margin-top:0">
+  <div class="card aw" id="aware"></div>
+  <div class="card" id="moves"></div>
+  <details class="card settings"><summary>Settings</summary>
+   <div class="row">
     <label><input type="checkbox" id="engineon" checked> Engine suggestions</label>
     <label>Lines <select id="lines"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option></select></label>
     <label>Depth <select id="depth"><option value="10">10 (fast)</option><option value="14">14</option><option value="16" selected>16</option><option value="20">20</option><option value="24">24 (slow)</option></select></label>
@@ -162,11 +239,8 @@ body.reviewing #engine,body.reviewing #aware,body.reviewing #moves,body.reviewin
     <label>Move list <select id="level"><option value="1">Hidden</option><option value="2" selected>All moves + notes</option></select></label>
     <label><input type="checkbox" id="warn" checked> Blunder warnings</label>
    </div>
-   <div class="mute" style="font-size:12px;margin-top:6px">Moves are listed by piece, never ranked. Stockfish's top picks are starred.</div>
-   <div id="getext" class="mute" style="font-size:12px;margin-top:6px" hidden>Want SFLarp in your browser's side panel? <a href="sflarp-extension.zip">Download the extension</a> (<a href="https://github.com/hxrply/SFLarp#browser-extension" target="_blank" rel="noopener">how to install</a>).</div>
-  </div>
-  <div class="card aw" id="aware"></div>
-  <div class="card" id="moves"></div>
+   <div id="getext" class="foot" hidden>Want SFLarp in your browser's side panel? <a href="sflarp-extension.zip">Download the extension</a> (<a href="https://github.com/hxrply/SFLarp#browser-extension" target="_blank" rel="noopener">how to install</a>).</div>
+  </details>
  </section>
 </main>
 <script>(() => {
@@ -3189,14 +3263,14 @@ function sideAccuracy(accs) {
 }
 
 const LABELS = {
-  book: { name: 'Book', mark: '📖', color: '#c9a36a' },
-  great: { name: 'Great', mark: '!', color: '#5aa9e6' },
-  best: { name: 'Best', mark: '★', color: '#5ac98f' },
-  excellent: { name: 'Excellent', mark: '👍', color: '#8fd19e' },
-  good: { name: 'Good', mark: '✓', color: '#a7c4a0' },
+  book: { name: 'Book', mark: '', color: '#c9a36a' },
+  great: { name: 'Great', mark: '!', color: '#6aa9e0' },
+  best: { name: 'Best', mark: '', color: '#5dbb8a' },
+  excellent: { name: 'Excellent', mark: '', color: '#8fd19e' },
+  good: { name: 'Good', mark: '', color: '#a7c4a0' },
   inaccuracy: { name: 'Inaccuracy', mark: '?!', color: '#f2c94c' },
   mistake: { name: 'Mistake', mark: '?', color: '#f0a23b' },
-  blunder: { name: 'Blunder', mark: '??', color: '#ff5c5c' },
+  blunder: { name: 'Blunder', mark: '??', color: '#f25555' },
 };
 const LABEL_ORDER = ['great', 'best', 'excellent', 'good', 'book', 'inaccuracy', 'mistake', 'blunder'];
 
@@ -3226,10 +3300,8 @@ function classify({ drop, isBest, onlyMove = false, inBook = false }) {
 // the document SFLarp is shown in: the page itself, or the floating window after "Pop out"
 let doc = document;
 const $ = (id) => doc.getElementById(id);
-const GLYPH = { wk: '♔', wq: '♕', wr: '♖', wb: '♗', wn: '♘', wp: '♙', bk: '♚', bq: '♛', br: '♜', bb: '♝', bn: '♞', bp: '♟' };
 const PIECE_NAME = { k: 'King', q: 'Queen', r: 'Rooks', b: 'Bishops', n: 'Knights', p: 'Pawns' };
 const THEMES = [['mate', 'Checkmate'], ['check', 'Checks'], ['capture', 'Captures'], ['threat', 'Threats'], ['fork', 'Forks'], ['discover', 'Discoveries'], ['defend', 'Defensive'], ['develop', 'Development'], ['castle', 'Castling'], ['promo', 'Promotions']];
-const PRIORITY = ['mate', 'check', 'fork', 'capture', 'threat', 'discover', 'defend', 'promo', 'castle', 'develop', 'center'];
 const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 // fast game modes: the engine thinks for a fixed time, and a big move card replaces the long panels
 const MODES = {
@@ -3250,11 +3322,10 @@ let plan = null;
 // game review: null, or { status: 'running' | 'done', hist, fens, evals, moves, idx, done, token }
 let review = null;
 
-const settings = { level: '2', warn: true, engine: true, lines: '3', depth: '16', playstyle: '', mode: 'analysis', reviewTime: '600' };
+const settings = { level: '2', warn: true, engine: true, lines: '3', depth: '16', playstyle: '', mode: 'analysis', reviewTime: '600', side: 'w' };
 try { Object.assign(settings, JSON.parse(localStorage.getItem('cc-settings') || '{}')); } catch {}
 const save = () => { try { localStorage.setItem('cc-settings', JSON.stringify(settings)); } catch {} };
 const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
-const kindOf = (m) => PRIORITY.find((k) => m.tags.some((t) => t.kind === k));
 const squareIndex = (n) => (8 - Number(n[1])) * 8 + 'abcdefgh'.indexOf(n[0]);
 const say = (t) => { $('msg').textContent = t; };
 const speedMode = () => (settings.mode !== 'analysis' && MODES[settings.mode]) || null;
@@ -3270,7 +3341,7 @@ function runEngine() {
   clearTimeout(engineTimer);
   const token = ++engineToken;
   if (review) return; // the review is using the engine
-  if (editing || !settings.engine || info.gameOver) {
+  if (editing || !settings.engine || info.gameOver || !myTurn()) {
     engine?.stop();
     eng = { status: settings.engine ? 'idle' : 'off', lines: [], depth: 0, fen: '', turn: chess.turn(), msg: '' };
     renderEngine(); drawArrows(); renderMoves(); renderSpeed();
@@ -3322,9 +3393,12 @@ function renderEngine() {
   const el = $('engine');
   if (editing || settings.mode === 'bullet') { el.hidden = true; return; }
   el.hidden = false;
-  if (!settings.engine) { el.innerHTML = '<h2>Engine</h2><div class="mute">Engine suggestions are off. Turn them on in Settings to see Stockfish\'s best lines.</div>'; return; }
-  if (info.gameOver) { el.innerHTML = '<h2>Engine</h2><div class="mute">Game over.</div>'; return; }
-  if (eng.status === 'error') { el.innerHTML = `<h2>Engine</h2><div class="bad">${esc(eng.msg)}</div>`; return; }
+  const name = esc(engine?.name || 'Stockfish 19');
+  const box = (text, cls = 'mute') => { el.innerHTML = `<h2>Best moves</h2><div class="${cls}">${text}</div>`; };
+  if (!settings.engine) { box('Engine suggestions are off. Turn them on in Settings to see Stockfish\'s best lines.'); return; }
+  if (info.gameOver) { box('Game over.'); return; }
+  if (eng.status === 'error') { box(esc(eng.msg), 'bad'); return; }
+  if (!myTurn()) { box(`${sideName(chess.turn())} to move. Enter their move and your best moves appear here.`); return; }
   const state = eng.status === 'done' ? `depth ${eng.depth}` : eng.lines.length ? `thinking… depth ${eng.depth}${speedMode() ? '' : `/${settings.depth}`}` : 'starting engine…';
   const rows = eng.lines.map((l, r) => {
     if (!l) return '';
@@ -3334,8 +3408,8 @@ function renderEngine() {
     return `<div class="eline" data-r="${r}"><span class="rank">${r + 1}</span><span class="ev ${v > 30 ? 'pos' : v < -30 ? 'neg' : ''}">${fmtScore(l.score, eng.turn)}</span><span class="pv"><b>${esc(san[0])}</b> ${esc(san.slice(1).join(' '))}</span></div>`;
   }).join('');
   const empty = eng.status === 'done' ? '<div class="bad">Stockfish could not analyse this position.</div>' : '<div class="mute">Working out the best moves…</div>';
-  el.innerHTML = `<h2>${esc(engine?.name || 'Stockfish 19')} &middot; <span class="mute" style="text-transform:none;letter-spacing:0">${state}</span></h2>${rows || empty}
-   <div class="mute" style="font-size:12px;margin-top:6px">Scores are from White's side (+ is better for White, #3 is mate in 3). Tap a line to see its first move.</div>`;
+  el.innerHTML = `<h2>Best moves for ${sideName(chess.turn())} <span class="sub">${name} &middot; ${state}</span></h2>${rows || empty}
+   <div class="foot">Scores are from White's side: + is better for White, #3 is mate in 3. Tap a line to see its first move.</div>`;
   el.querySelectorAll('.eline').forEach((row) => {
     row.onclick = () => { const m = engineMove(eng.lines[row.dataset.r]); selected = m.from; highlight = [m.from, m.to]; renderBoard(); };
   });
@@ -3361,22 +3435,20 @@ function drawArrows() {
     const i = review.idx - 1, mv = review.moves?.[i];
     if (i >= 0) {
       const h = review.hist[i];
-      out += arrow(h.from, h.to, mv ? LABELS[mv.label].color : '#9aa3b5', 0.15, 0.9);
+      out += arrow(h.from, h.to, mv ? LABELS[mv.label].color : '#8f97a3', 0.15, 0.9);
       const best = review.evals[i]?.best;
-      if (mv && best && !['best', 'great', 'book'].includes(mv.label)) out += arrow(best.slice(0, 2), best.slice(2, 4), '#5ac98f', 0.15, 0.85);
+      if (mv && best && !['best', 'great', 'book'].includes(mv.label)) out += arrow(best.slice(0, 2), best.slice(2, 4), '#5dbb8a', 0.15, 0.85);
     }
     svg.innerHTML = out;
     return;
   }
   // the plan's book move sits underneath, slightly wider, so it still shows when the engine agrees
-  if (plan?.state === 'your-move') for (const m of plan.next) out += arrow(m.from, m.to, '#f0b429', 0.22, 0.9);
+  if (plan?.state === 'your-move') for (const m of plan.next) out += arrow(m.from, m.to, '#deb04f', 0.22, 0.9);
   if (settings.engine) {
-    // in a fast mode on their turn the engine's line is their expected move: show it in their colour
-    const theirs = speedMode() && chess.turn() !== mySide();
     eng.lines.forEach((l, k) => {
       if (!l) return;
       const m = engineMove(l);
-      out += arrow(m.from, m.to, k === 0 ? (theirs ? '#c9b8ff' : '#5ac98f') : '#5aa9e6', k === 0 ? 0.15 : 0.1, k === 0 ? 0.9 : 0.65);
+      out += arrow(m.from, m.to, k === 0 ? '#5dbb8a' : '#6aa9e0', k === 0 ? 0.15 : 0.1, k === 0 ? 0.9 : 0.65);
     });
   }
   svg.innerHTML = out;
@@ -3496,23 +3568,23 @@ function renderReview() {
   let detail = '<span class="mute">Start of the game. Use the arrows to step through it.</span>';
   if (cur) {
     const L = LABELS[cur.label];
-    detail = `<b>${moveNo(i)}${esc(cur.san)}</b> <span class="rlabel" style="--c:${L.color}">${L.mark} ${L.name}</span>
+    detail = `<b>${moveNo(i)}${esc(cur.san)}</b> <span class="rlabel" style="--c:${L.color}">${L.name}</span>
       <span class="mute">eval ${fmtEval(review.evals[i + 1].cp)}</span>
       ${['inaccuracy', 'mistake', 'blunder', 'good', 'excellent'].includes(cur.label) && cur.bestSan ? `<div>Best was <b class="good">${esc(cur.bestSan)}</b> (${fmtEval(review.evals[i].cp)}).</div>` : ''}`;
   }
   const mine = mySide();
   const keys = review.moves.map((m, k) => ({ m, k })).filter(({ m }) => m.color === mine && ['mistake', 'blunder'].includes(m.label));
-  el.innerHTML = `<div class="rhead"><h2>Game review</h2><button type="button" id="rclose">Back to game</button></div>
+  el.innerHTML = `<div class="rhead"><h2>Game review</h2><button type="button" id="rclose" class="primary">Back to game</button></div>
     <div class="racc"><div><span class="rbig">${acc(review.accuracy.w)}</span><span class="mute">White accuracy</span></div><div><span class="rbig">${acc(review.accuracy.b)}</span><span class="mute">Black accuracy</span></div></div>
     ${reviewGraph()}
-    <div class="rnav"><button type="button" data-go="0" aria-label="First move">⏮</button><button type="button" data-go="${review.idx - 1}" aria-label="Previous move">◀</button><button type="button" data-go="${review.idx + 1}" aria-label="Next move">▶</button><button type="button" data-go="${review.fens.length - 1}" aria-label="Last move">⏭</button></div>
+    <div class="rnav"><button type="button" data-go="0" aria-label="First move">&laquo;</button><button type="button" data-go="${review.idx - 1}" aria-label="Previous move">&lsaquo;</button><button type="button" data-go="${review.idx + 1}" aria-label="Next move">&rsaquo;</button><button type="button" data-go="${review.fens.length - 1}" aria-label="Last move">&raquo;</button></div>
     <div class="rdetail">${detail}</div>
     ${keys.length ? `<div class="rkeys">Your ${keys.length === 1 ? 'mistake' : 'mistakes'} (${sideName(mine)}): ${keys.map(({ m, k }) => `<button type="button" data-go="${k + 1}" style="--c:${LABELS[m.label].color}">${moveNo(k)}${esc(m.san)}${LABELS[m.label].mark}</button>`).join(' ')}</div>` : ''}
     <table class="rtab"><thead><tr><th></th><th>White</th><th>Black</th></tr></thead><tbody>
-      ${LABEL_ORDER.map((l) => `<tr><td><span class="rlabel" style="--c:${LABELS[l].color}">${LABELS[l].mark}</span> ${LABELS[l].name}</td><td>${count(l, 'w')}</td><td>${count(l, 'b')}</td></tr>`).join('')}
+      ${LABEL_ORDER.map((l) => `<tr><td><span class="rlabel" style="--c:${LABELS[l].color}">${LABELS[l].name}</span></td><td>${count(l, 'w')}</td><td>${count(l, 'b')}</td></tr>`).join('')}
     </tbody></table>
-    <div class="rmoves">${review.moves.map((m, k) => `${k % 2 ? '' : `<span class="mute">${k / 2 + 1}.</span>`}<button type="button" data-go="${k + 1}" class="${k === i ? 'on' : ''}" style="--c:${LABELS[m.label].color}">${esc(m.san)}<sup>${LABELS[m.label].mark}</sup></button>`).join(' ')}</div>
-    <div class="mute" style="font-size:12px;margin-top:8px">Labels and accuracy come from Stockfish 19 lite with ${(Number(settings.reviewTime) / 1000).toFixed(2).replace(/0$/, '')} s per position, using lichess's public accuracy formula, so numbers can differ a little from chess.com's.</div>`;
+    <div class="rmoves">${review.moves.map((m, k) => `${k % 2 ? '' : `<span class="mute">${k / 2 + 1}.</span>`}<button type="button" data-go="${k + 1}" class="${k === i ? 'on' : ''}" style="--c:${LABELS[m.label].color}">${esc(m.san)}<i>${LABELS[m.label].mark}</i></button>`).join(' ')}</div>
+    <div class="foot">Labels and accuracy come from Stockfish 19 lite with ${(Number(settings.reviewTime) / 1000).toFixed(2).replace(/0$/, '')} s per position, using lichess's public accuracy formula, so numbers can differ a little from chess.com's.</div>`;
   $('rclose').onclick = closeReview;
   el.querySelectorAll('[data-go]').forEach((b) => { b.onclick = () => reviewGo(Number(b.dataset.go)); });
   const g = el.querySelector('.rgraph');
@@ -3559,7 +3631,24 @@ async function popOut() {
 
 /* ---------- fast game modes ---------- */
 // the side you are playing: the playstyle's side, otherwise the side at the bottom of the board
-const mySide = () => currentOpening()?.side || (flipped ? 'b' : 'w');
+const mySide = () => currentOpening()?.side || (settings.side === 'both' ? (flipped ? 'b' : 'w') : settings.side);
+// with "Both", every move is treated as yours (best moves are shown for whoever is to move)
+const bothSides = () => settings.side === 'both' && !currentOpening();
+const myTurn = () => bothSides() || chess.turn() === mySide();
+
+function renderSides() {
+  const cur = bothSides() ? 'both' : mySide();
+  doc.querySelectorAll('#sidebar button').forEach((b) => b.classList.toggle('on', b.dataset.side === cur));
+}
+
+function chooseSide(side) {
+  const op = currentOpening();
+  if (op && side !== op.side) { settings.playstyle = ''; $('playstyle').value = ''; } // that opening is for the other side
+  settings.side = side; save();
+  if (side !== 'both') flipped = side === 'b';
+  selected = highlight = null;
+  refresh();
+}
 
 /** The move to suggest when it is your turn: the book move while in the opening, else the engine's first choice. */
 function suggestion() {
@@ -3576,7 +3665,7 @@ function renderSpeed() {
   if (!speed || editing || !info) { el.hidden = true; return; }
   el.hidden = false;
   if (info.gameOver) { el.innerHTML = `<div class="slabel">Game over</div><div class="sbig">${info.gameOver === 'checkmate' ? 'Checkmate' : 'Draw'}</div>`; return; }
-  const yours = chess.turn() === mySide();
+  const yours = myTurn();
   const l = settings.engine && eng.fen === chess.fen() ? eng.lines[0] : null;
   const pv = l ? pvToSan(eng.fen, l.pv, speed.ahead + 1) : [];
   // dangers, from your point of view whoever is to move
@@ -3593,10 +3682,10 @@ function renderSpeed() {
   if (yours) {
     const s = suggestion();
     html += `<div class="slabel">Your move</div>`;
-    if (!s) html += `<div class="sbig mute">${settings.engine ? 'thinking…' : 'Engine off'}</div>`;
+    if (!s) html += `<div class="sbig wait">${settings.engine ? 'Thinking…' : 'Engine off'}</div>`;
     else {
       const engineAgrees = s.source === 'book' && pv[0] === s.san;
-      html += `<div class="sbig">${esc(s.san)} <span class="ssrc">${s.source === 'book' ? `📖 book${pv[0] && !engineAgrees ? ` &middot; engine: ${esc(pv[0])}` : ''}` : `★ ${esc(s.score)}`}</span></div>`;
+      html += `<div class="sbig">${esc(s.san)} <span class="ssrc${s.source === 'book' ? ' book' : ''}">${s.source === 'book' ? `Book${pv[0] && !engineAgrees ? ` &middot; engine: ${esc(pv[0])}` : ''}` : esc(s.score)}</span></div>`;
       // moves ahead: only from the engine line that starts with the suggested move
       if (pv[0] === s.san && pv.length > 1) {
         html += `<div class="sthen">Then: ${chain(pv.slice(1), false)}</div>`;
@@ -3609,12 +3698,10 @@ function renderSpeed() {
       }
     }
   } else {
-    html += `<div class="slabel">Their move &middot; type it in</div>`;
-    html += pv[0] ? `<div class="sbig them">Expect ${esc(pv[0])}</div>${pv.length > 1 ? `<div class="sthen">Your answer: ${chain(pv.slice(1), true)}</div>` : ''}`
-      : `<div class="sbig mute">${settings.engine ? 'thinking…' : 'Engine off'}</div>`;
+    html += `<div class="slabel">Their move</div><div class="sbig wait">Enter their move</div>`;
   }
-  if (dangers.length) html += dangers.slice(0, speed.dangers).map((d) => `<div class="sdanger">&#9888; ${esc(d)}</div>`).join('');
-  html += `<div class="shint">You are ${sideName(mySide())}${currentOpening() ? '' : ' (Flip to switch)'}. Enter on an empty move box plays your suggested move.</div>`;
+  if (dangers.length) html += dangers.slice(0, speed.dangers).map((d) => `<div class="sdanger">${esc(d)}</div>`).join('');
+  html += `<div class="shint">${bothSides() ? 'Showing moves for both sides' : `You are ${sideName(mySide())}`}. Enter on an empty move box plays your suggested move.</div>`;
   el.innerHTML = html;
 }
 
@@ -3647,7 +3734,7 @@ function choosePlaystyle(id) {
   settings.playstyle = id; save();
   $('playstyle').value = id;
   const op = currentOpening();
-  if (op) flipped = op.side === 'b'; // look at the board from the side you are playing
+  if (op) { settings.side = op.side; save(); flipped = op.side === 'b'; } // look at the board from the side you are playing
   refresh();
 }
 
@@ -3655,7 +3742,7 @@ function renderPlan() {
   const el = $('planbody');
   const op = currentOpening();
   if (!op) {
-    el.innerHTML = '<div class="mute" style="font-size:13px;margin-top:6px">Pick an opening and SFLarp shows its moves, what each one is for, and the plan afterwards. Choose None to use SFLarp as it is.</div>';
+    el.innerHTML = '<div class="foot">Pick an opening and SFLarp shows its moves, what each one is for, and the plan afterwards.</div>';
     return;
   }
   const move = (d) => `${d.moveNo}${d.black ? '...' : '.'}${esc(d.san)}`;
@@ -3664,11 +3751,11 @@ function renderPlan() {
   else if (!plan) status = '';
   else if (plan.state === 'your-move') {
     status = `<div class="plabel">Your book move${plan.next.length > 1 ? 's' : ''}</div>` + plan.next.map((m) => `
-      <div class="pmove"><b>${esc(m.san)}</b><span class="pnote">${esc(noteFor(op, m.san))}</span><button type="button" data-play="${esc(m.san)}">Play ${esc(m.san)}</button></div>`).join('');
+      <div class="pmove"><b>${esc(m.san)}</b><span class="pnote">${esc(noteFor(op, m.san))}</span><button type="button" class="primary" data-play="${esc(m.san)}">Play ${esc(m.san)}</button></div>`).join('');
   } else if (plan.state === 'their-move') {
     status = `<div class="plabel">Their move</div><div>The book expects ${plan.next.map((m) => `<b>${esc(m.san)}</b>`).join(', ')}. Enter their move when they play it.</div>`;
   } else if (plan.state === 'complete') {
-    status = `<div class="good">&#10003; You've played the whole ${esc(op.name)} line. Follow the game plan below; the engine and the move notes still work as normal.</div>`;
+    status = `<div class="good">You've played the whole ${esc(op.name)} line. Follow the game plan below; the engine and the move notes still work as normal.</div>`;
   } else if (plan.state === 'off-book') {
     const d = plan.deviation;
     status = d.byYou
@@ -3679,11 +3766,11 @@ function renderPlan() {
   }
   const fits = plan && (plan.state === 'off-book' || plan.state === 'not-from-start') && !info.gameOver ? fittingOpenings(chess, op.side, op.id) : [];
   el.innerHTML = `
-    <div class="ptitle"><b>${esc(op.name)}</b><span class="chip k-plan">You play ${sideName(op.side)}</span><span class="chip" style="--c:#8a93a8">${esc(op.style)}</span></div>
-    <div class="mute" style="font-size:13px">${esc(op.summary)}</div>
-    ${op.warning ? `<div class="bad" style="font-size:13px;margin-top:4px">&#9888; ${esc(op.warning)}</div>` : ''}
+    <div class="ptitle"><b>${esc(op.name)}</b><span class="chip k-plan">You play ${sideName(op.side)}</span><span class="chip">${esc(op.style)}</span></div>
+    <div class="mute small">${esc(op.summary)}</div>
+    ${op.warning ? `<div class="bad small" style="margin-top:4px">${esc(op.warning)}</div>` : ''}
     <div class="pstatus">${status}</div>
-    ${fits.length ? `<div style="font-size:13px">Playstyles that fit this position: ${fits.map((o) => `<button type="button" class="pfit" data-op="${o.id}">${esc(o.name)}</button>`).join(' ')}</div>` : ''}
+    ${fits.length ? `<div class="small">Playstyles that fit this position: ${fits.map((o) => `<button type="button" class="pfit" data-op="${o.id}">${esc(o.name)}</button>`).join(' ')}</div>` : ''}
     <details class="pplan"${plan && (plan.state === 'complete' || plan.state === 'off-book') ? ' open' : ''}><summary>Game plan</summary><ul>${op.plan.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></details>`;
   el.querySelectorAll('[data-play]').forEach((b) => {
     b.onclick = () => { try { chess.move(b.dataset.play); } catch { return; } selected = highlight = null; say(''); refresh(); };
@@ -3701,7 +3788,8 @@ function refresh() {
 
 function render() {
   renderBoard(); renderSpeed(); renderStatus(); renderPlan(); renderAware(); renderMoves(); renderEngine(); renderReview(); drawArrows();
-  $('popout').textContent = pipWin ? '⧉ Pop back in' : '⧉ Pop out';
+  $('popout').textContent = pipWin ? 'Pop back in' : 'Pop out';
+  renderSides();
   $('fen').value = chess.fen();
 }
 
@@ -3719,12 +3807,10 @@ function renderBoard() {
     const hl = review ? (review.idx > 0 && [review.hist[review.idx - 1].from, review.hist[review.idx - 1].to].includes(name)) : !editing && highlight && highlight.includes(name);
     d.className = `sq ${(rr + ff) % 2 ? 'd' : 'l'}${(name === selected && !editing && !review) || picked ? ' sel' : ''}${hl ? ' hl' : ''}`;
     d.dataset.sq = name;
-    if (p) d.innerHTML = `<span class="p ${p.c}">${GLYPH[p.c + p.t]}</span>`;
-    if (dests.has(name)) {
-      const k = kindOf(dests.get(name));
-      d.insertAdjacentHTML('beforeend', `<span class="dot" style="${k ? `background:var(--${k});opacity:.85` : ''}"></span>`);
-    }
-    if (f === 0) d.insertAdjacentHTML('beforeend', `<span class="coord">${8 - rr}</span>`);
+    if (p) d.innerHTML = `<span class="pc ${p.c}${p.t}"></span>`;
+    if (dests.has(name)) d.insertAdjacentHTML('beforeend', `<span class="dot${p ? ' ring' : ''}"></span>`);
+    if (f === 0) d.insertAdjacentHTML('beforeend', `<span class="coord rk">${8 - rr}</span>`);
+    if (r === 7) d.insertAdjacentHTML('beforeend', `<span class="coord fl">${'abcdefgh'[ff]}</span>`);
     d.onclick = () => (editing ? onEditSquare(rr * 8 + ff) : onSquare(name));
     b.appendChild(d);
   }
@@ -3750,7 +3836,7 @@ function renderStatus() {
   if (info.gameOver === 'checkmate') t = `Checkmate &mdash; ${side === 'White' ? 'Black' : 'White'} wins`;
   else if (info.gameOver) t = `Game over: ${info.gameOver}`;
   else if (info.position.inCheck) t += ' &mdash; <b class="bad">in check</b>';
-  if (info.gameOver && chess.history().length) t += ' &middot; <button type="button" id="reviewnow">📊 Review this game</button>';
+  if (info.gameOver && chess.history().length) t += ' &middot; <button type="button" id="reviewnow" class="primary">Review this game</button>';
   $('status').innerHTML = t;
   $('reviewnow')?.addEventListener('click', startReview);
 }
@@ -3761,32 +3847,39 @@ function renderAware() {
   const el = $('aware');
   if (editing) { el.hidden = true; return; }
   el.hidden = false;
-  const p = info.position, c = info.counts, you = p.turn === 'w' ? 'White' : 'Black';
+  const p = info.position, c = info.counts;
   if (info.gameOver) { el.innerHTML = '<h2>Look around</h2><div class="mute">Game over.</div>'; return; }
-  const sign = p.material.diff > 0 ? `+${p.material.diff}` : p.material.diff;
+  // the analysis is from the mover's side; when it is their move, swap it round so "your" always means you
+  const mine = myTurn();
+  const me = mine ? { attacked: p.yourPiecesAttacked, pins: p.yourPins, loose: p.yourLoose } : { attacked: p.theirPiecesAttackable, pins: p.theirPins, loose: p.theirLoose };
+  const them = mine ? { attacked: p.theirPiecesAttackable, pins: p.theirPins, loose: p.theirLoose } : { attacked: p.yourPiecesAttacked, pins: p.yourPins, loose: p.yourLoose };
+  const mat = mine ? p.material : { you: p.material.them, them: p.material.you, diff: -p.material.diff };
+  const sign = mat.diff > 0 ? `+${mat.diff}` : mat.diff;
+  const pts = (n) => `about ${n} pt${n > 1 ? 's' : ''}`;
   const danger = [];
-  if (p.theyThreatenMate) danger.push('<b class="bad">They threaten checkmate in 1 if you pass.</b>');
-  for (const x of p.yourPiecesAttacked) danger.push(`Your ${x.piece} on <b>${x.sq}</b> can be won (about ${x.loss} pt${x.loss > 1 ? 's' : ''}).`);
-  for (const x of p.yourPins) danger.push(`Your ${x.piece} on ${x.sq} is pinned to your king by ${x.by}.`);
+  if (mine && p.theyThreatenMate) danger.push('<span class="bad">They threaten checkmate in 1 if you pass.</span>');
+  if (!mine && c.mates) danger.push('<span class="bad">They have checkmate in 1.</span>');
+  for (const x of me.attacked) danger.push(`Your ${x.piece} on <b>${x.sq}</b> can be won (${pts(x.loss)}).`);
+  for (const x of me.pins) danger.push(`Your ${x.piece} on <b>${x.sq}</b> is pinned to your king by ${x.by}.`);
   const chances = [];
-  for (const x of p.theirPiecesAttackable) chances.push(`Their ${x.piece} on <b>${x.sq}</b> is attackable (about ${x.loss} pt${x.loss > 1 ? 's' : ''}).`);
-  for (const x of p.theirPins) chances.push(`Their ${x.piece} on ${x.sq} is pinned to their king by ${x.by}.`);
-  for (const x of p.theirLoose) chances.push(`Loose (undefended): their ${x}.`);
-  const own = p.yourLoose.map((x) => `Your ${x} is undefended.`);
+  for (const x of them.attacked) chances.push(`Their ${x.piece} on <b>${x.sq}</b> can be won (${pts(x.loss)}).`);
+  for (const x of them.pins) chances.push(`Their ${x.piece} on <b>${x.sq}</b> is pinned to their king by ${x.by}.`);
+  for (const x of them.loose) chances.push(`Their ${x} is undefended.`);
+  const own = me.loose.map((x) => `Your ${x} is undefended.`);
   const open = [];
-  if (p.opening) {
+  if (mine && p.opening) {
     if (p.opening.undeveloped.length) open.push(`Still at home: ${p.opening.undeveloped.join(', ')}`);
     open.push(p.opening.castlingRights ? 'You can still castle.' : 'Castling rights are gone.');
   }
   const themes = [['Checkmate', c.mates], ['Checks', c.checks], ['Captures', c.captures], ['Threats', c.threats], ['Discoveries', c.discoveries], ['Forks', c.forks], ['Promotions', c.promotions], ['Castling', c.castles]];
-  el.innerHTML = `<h2>Look around &mdash; ${you}</h2>
-   <div>Material: ${p.material.you} vs ${p.material.them} (<b class="${p.material.diff < 0 ? 'bad' : p.material.diff > 0 ? 'good' : ''}">${sign}</b>) &middot; ${c.total} legal moves${p.theirChecks ? ` &middot; they have ${p.theirChecks} check${p.theirChecks > 1 ? 's' : ''} available` : ''}</div>
-   ${danger.length ? `<h2 style="margin-top:10px">Watch out</h2>${list(danger, 'bad')}` : ''}
-   ${own.length ? `<h2>Soft spots</h2>${list(own)}` : ''}
-   ${chances.length ? `<h2>Opportunities in their camp</h2>${list(chances)}` : ''}
-   ${open.length ? `<h2>Opening checklist</h2>${list(open)}` : ''}
-   <h2>Ideas available this move</h2>
-   <div class="mute" style="font-size:13px">${themes.filter(([, n]) => n).map(([name, n]) => `${name}: ${n}`).join(' &middot; ') || 'No tactics on the board &mdash; quiet position.'}</div>`;
+  const side = sideName(mine ? p.turn : (p.turn === 'w' ? 'b' : 'w'));
+  el.innerHTML = `<h2>Look around <span class="sub">${side}${mine ? '' : ', waiting for their move'}</span></h2>
+   <div class="kv"><span>Material ${mat.you} vs ${mat.them} ${mat.diff ? `<b class="${mat.diff < 0 ? 'bad' : 'good'}">${sign}</b>` : '<span class="mute">(level)</span>'}</span>${mine ? `<span>${c.total} legal moves</span>` : ''}${mine && p.theirChecks ? `<span>They have ${p.theirChecks} check${p.theirChecks > 1 ? 's' : ''} available</span>` : ''}</div>
+   ${danger.length ? `<h3>Watch out</h3>${list(danger)}` : ''}
+   ${own.length ? `<h3>Soft spots</h3>${list(own)}` : ''}
+   ${chances.length ? `<h3>Opportunities</h3>${list(chances)}` : ''}
+   ${open.length ? `<h3>Opening checklist</h3>${list(open)}` : ''}
+   ${mine ? `<h3>Ideas this move</h3><div class="small mute">${themes.filter(([, n]) => n).map(([name, n]) => `${name} ${n}`).join(' &middot; ') || 'No tactics on the board, a quiet position.'}</div>` : ''}`;
 }
 
 const matchesFilter = (m, f) => (f === 'engine' ? enginePick(m) >= 0 : f === 'plan' ? planPick(m) >= 0 : m.tags.some((t) => t.kind === f));
@@ -3797,15 +3890,16 @@ function renderMoves() {
   el.hidden = false;
   if (info.gameOver) { el.innerHTML = ''; return; }
   if (settings.level === '1') { el.innerHTML = '<h2>Moves</h2><div class="mute">The move list is hidden. Switch "Move list" in Settings to see it.</div>'; return; }
+  if (!myTurn()) { el.innerHTML = '<h2>Your moves</h2><div class="mute">Your legal moves are listed here when it is your turn.</div>'; return; }
   const present = THEMES.filter(([k]) => info.moves.some((m) => m.tags.some((t) => t.kind === k)));
   const hasEngine = info.moves.some((m) => enginePick(m) >= 0);
   const hasPlan = info.moves.some((m) => planPick(m) >= 0);
   if (filter === 'plan' && !hasPlan) filter = null; // the book move was played; show everything again
-  let html = `<h2>All ${info.moves.length} legal moves</h2><div class="themes">
-    ${hasPlan ? `<span class="chip k-plan${filter && filter !== 'plan' ? ' off' : ''}" data-f="plan">📖 Plan move</span>` : ''}
-    ${hasEngine ? `<span class="chip k-engine${filter && filter !== 'engine' ? ' off' : ''}" data-f="engine">★ Engine picks</span>` : ''}
+  let html = `<h2>Your moves <span class="sub">${info.moves.length} legal</span></h2><div class="themes">
+    ${hasPlan ? `<span class="chip k-plan${filter && filter !== 'plan' ? ' off' : ''}" data-f="plan">Book move</span>` : ''}
+    ${hasEngine ? `<span class="chip k-engine${filter && filter !== 'engine' ? ' off' : ''}" data-f="engine">Engine picks</span>` : ''}
     ${present.map(([k, n]) => `<span class="chip k-${k}${filter && filter !== k ? ' off' : ''}" data-f="${k}">${n}</span>`).join('')}
-    ${filter ? '<span class="chip" data-f="" style="--c:#667">show all</span>' : ''}</div>`;
+    ${filter ? '<span class="chip" data-f="">Show all</span>' : ''}</div>`;
   const groups = {};
   for (const m of info.moves) if (!filter || matchesFilter(m, filter)) (groups[m.piece] ||= []).push(m);
   for (const k of ['k', 'q', 'r', 'b', 'n', 'p']) {
@@ -3814,11 +3908,11 @@ function renderMoves() {
     for (const m of groups[k]) {
       const idx = info.moves.indexOf(m);
       const pick = enginePick(m);
-      const star = (planPick(m) >= 0 ? '<span class="chip k-plan">📖 Plan</span>' : '') + (pick >= 0 ? `<span class="chip k-engine">★ Engine #${pick + 1}</span>` : '');
+      const star = (planPick(m) >= 0 ? '<span class="chip k-plan">Book</span>' : '') + (pick >= 0 ? `<span class="chip k-engine">Engine ${pick + 1}</span>` : '');
       const chips = m.tags.map((t) => `<span class="chip k-${t.kind}" title="${esc(t.text)}">${esc(t.text)}</span>`).join('');
       let verdict = '';
-      if (settings.warn && m.net !== null) verdict = m.net > 0 ? ' <span class="good">(wins material)</span>' : m.net === 0 ? ' <span class="mute">(even trade)</span>' : '';
-      const warns = settings.warn ? m.warn.map((w) => `<span class="chip warn">⚠ ${esc(w)}</span>`).join('') : '';
+      if (settings.warn && m.net !== null) verdict = m.net > 0 ? '<span class="good small">wins material</span>' : m.net === 0 ? '<span class="mute small">even trade</span>' : '';
+      const warns = settings.warn ? m.warn.map((w) => `<span class="chip warn">${esc(w)}</span>`).join('') : '';
       html += `<div class="mv" data-i="${idx}"><b>${esc(m.san)}</b>${star}${chips}${verdict}${warns}</div>`;
     }
   }
@@ -3833,8 +3927,11 @@ function renderMoves() {
 const START_GRID = gridOf(new Chess(START_FEN));
 
 function buildPalette() {
-  const tools = [['hand', '✋ Move'], ...['w', 'b'].flatMap((c) => ['k', 'q', 'r', 'b', 'n', 'p'].map((t) => [c + t, GLYPH[c + t]])), ['x', '✕']];
-  $('palette').innerHTML = tools.map(([k, label]) => `<button type="button" data-t="${k}" class="${k[0] === 'w' || k[0] === 'b' ? k[0] : ''}${k === editTool ? ' on' : ''}" aria-label="${k}">${label}</button>`).join('');
+  const tools = [['hand', 'Move'], ...['w', 'b'].flatMap((c) => ['k', 'q', 'r', 'b', 'n', 'p'].map((t) => [c + t, ''])), ['x', 'Erase']];
+  const names = { k: 'king', q: 'queen', r: 'rook', b: 'bishop', n: 'knight', p: 'pawn' };
+  $('palette').innerHTML = tools.map(([k, label]) => (label
+    ? `<button type="button" data-t="${k}" class="txt${k === editTool ? ' on' : ''}">${label}</button>`
+    : `<button type="button" data-t="${k}" class="${k === editTool ? 'on' : ''}" aria-label="${k[0] === 'w' ? 'White' : 'Black'} ${names[k[1]]}"><span class="pc ${k}"></span></button>`)).join('');
   $('palette').querySelectorAll('button').forEach((b) => { b.onclick = () => { editTool = b.dataset.t; handFrom = null; buildPalette(); renderBoard(); }; });
 }
 
@@ -3906,7 +4003,7 @@ function playTyped(txt) {
 $('moveform').onsubmit = (e) => {
   e.preventDefault();
   let txt = $('mvin').value.trim();
-  if (!txt && speedMode() && chess.turn() === mySide()) txt = suggestion()?.san || '';
+  if (!txt && speedMode() && myTurn()) txt = suggestion()?.san || '';
   if (!txt) return;
   if (!playTyped(txt)) {
     say(chess.isGameOver() ? 'The game is over.' : `"${txt}" is not a legal move here. Try e4, Nf3, exd5, O-O or e2e4.`);
@@ -3920,7 +4017,9 @@ buildPlaystylePicker();
 if (/(^|\.)github\.io$|^localhost$|^127\.0\.0\.1$/.test(location.hostname)) $('getext').hidden = false;
 doc.querySelectorAll('#modes button').forEach((b) => { b.onclick = () => chooseMode(b.dataset.mode); });
 applyMode();
-if (currentOpening()) flipped = currentOpening().side === 'b';
+if (!['w', 'b', 'both'].includes(settings.side)) settings.side = 'w';
+flipped = mySide() === 'b' && !bothSides();
+doc.querySelectorAll('#sidebar button').forEach((b) => { b.onclick = () => chooseSide(b.dataset.side); });
 $('playstyle').onchange = (e) => choosePlaystyle(e.target.value);
 $('level').value = settings.level; $('warn').checked = settings.warn;
 $('reviewtime').value = settings.reviewTime;

@@ -18,7 +18,11 @@ const js = files.map((f) => strip(readFileSync(f, 'utf8'))).join('\n');
 const leftover = js.match(/^(import|export)\b.*$/m);
 if (leftover) throw new Error(`build: module syntax left in the bundle: ${leftover[0]}`);
 new Function(js); // fail the build on a syntax error instead of shipping a blank page
-const fragment = readFileSync('src/template.html', 'utf8')
+// piece images are inlined as CSS backgrounds so the page stays a single file
+const pieces = ['w', 'b'].flatMap((c) => ['k', 'q', 'r', 'b', 'n', 'p'].map((t) =>
+  `.pc.${c}${t}{background-image:url("data:image/svg+xml;base64,${readFileSync(`vendor/pieces/${c}${t}.svg`).toString('base64')}")}`)).join('\n');
+const template = readFileSync('src/template.html', 'utf8').replace('/*PIECES*/', () => pieces);
+const fragment = template
   .replace('/*SCRIPT*/', () => `(() => {\n${js.replace(/<\/script/gi, '<\\/script')}\n})();`);
 const wrap = (frag) => {
   const [headPart, ...rest] = frag.split('</style>\n');
@@ -39,7 +43,8 @@ writeFileSync('index.html', page);
 
 // Extension page: extensions forbid inline scripts, so the bundle goes in its own file.
 // The web-app manifest and home-screen tags are dropped (they mean nothing inside an extension).
-const extPage = wrap(readFileSync('src/template.html', 'utf8')
+const extPage = wrap(template
+  .replace(/^<link rel="stylesheet" href="https:.*\n/gm, '') // no network requests from the extension
   .replace('<script>/*SCRIPT*/</script>', '<script src="app.js"></script>')
   .replace(/^<meta name="(claude:viewport-fit-sides|mobile-web-app-capable|apple-[^"]+)".*\n/gm, '')
   .replace(/^<link rel="(manifest|apple-touch-icon)".*\n/gm, '')
