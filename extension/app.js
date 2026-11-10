@@ -3398,10 +3398,12 @@ function renderSides() {
 
 function chooseSide(side) {
   const op = currentOpening();
-  if (op && side !== op.side) { settings.playstyle = ''; $('playstyle').value = ''; } // that opening is for the other side
+  const cleared = op && side !== op.side; // that opening is for the other side
+  if (cleared) { settings.playstyle = ''; $('playstyle').value = ''; }
   settings.side = side; save();
   if (side !== 'both') flipped = side === 'b';
   selected = highlight = null;
+  say(cleared ? `Now playing ${side === 'both' ? 'both sides' : sideName(side)}, so the ${op.name} playstyle was turned off.` : '');
   refresh();
 }
 
@@ -3721,7 +3723,10 @@ $('popout').onclick = popOut;
 try { if (window.self !== window.top) $('popout').hidden = true; } catch { $('popout').hidden = true; }
 document.getElementById('popback').onclick = () => pipWin?.close();
 window.addEventListener('keydown', onKey);
-$('flip').onclick = () => { flipped = !flipped; render(); };
+// Flip turns the board round and, unless you play both sides, makes you the side now at the bottom
+$('flip').onclick = () => {
+  if (bothSides()) { flipped = !flipped; render(); } else chooseSide(mySide() === 'w' ? 'b' : 'w');
+};
 $('edit').onclick = () => (editing ? ($('ecancel').onclick()) : (leaveReview(), startEditing()));
 $('new').onclick = () => { leaveReview(); stopEditing(); chess = new Chess(); selected = highlight = filter = null; say(''); refresh(); };
 // a cleared board is a fresh setup (castling allowed wherever king and rook stand at home)
